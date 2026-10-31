@@ -25,7 +25,7 @@ h2{font-size:14px;font-weight:600;color:var(--s);margin:18px 4px 6px}
 .tap{cursor:pointer}
 small,.mu{color:var(--s)}
 .seg{display:flex;background:var(--l);border-radius:10px;padding:3px;margin:0 0 10px}
-.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:8px;color:var(--t);font:inherit}
+.seg button{flex:1;border:0;background:none;padding:9px 2px;font-size:14px;border-radius:8px;color:var(--t);font:inherit}
 .seg .on{background:var(--c);font-weight:600;box-shadow:0 1px 3px #0003}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
 .pb{border:0;border-radius:12px;background:var(--at);color:var(--t);padding:14px 8px;font:inherit}
@@ -54,126 +54,160 @@ nav .on{color:var(--a)}
 </nav>
 <script>
 const K='suiviheures.v1',$=s=>document.querySelector(s),p=n=>String(n).padStart(2,'0'),cl=x=>JSON.parse(JSON.stringify(x));
-const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00'),FR=(w=1)=>T('08:15','','','12:15',w);
-const DEF={bonus:0,thr:8,r1:25,r2:50,truckIn:false,mealStd:60,mealRed:30,tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)]};
-let S,E={};
-try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set}}}catch(e){S={days:{},set:cl(DEF)}}
+const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00'),FR=(w=1)=>T('08:15','','','12:15',w),E8=()=>T('08:00','12:00','13:45','17:45');
+const DEF={bonus:10,rate:0,thr:8,r1:25,r2:50,truckIn:false,mealStd:60,mealRed:30,
+ tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)],
+ tplE:[T('09:00','12:00','13:45','17:45'),E8(),E8(),E8(),T('08:00','','','12:00'),T('08:00','','','12:00',0),T('08:00','','','12:00',0)]};
+let S,A={},E={};
+try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v}}catch(e){S={days:{},set:cl(DEF),v:2}}
 const save=()=>{localStorage[K]=JSON.stringify(S)};
-const V={tab:'p',date:null,h:'j'};
+const V={tab:'p',date:null,h:'m'};
 const iso=d=>d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-V.date=iso(new Date());
+const TD=()=>iso(new Date());V.date=TD();
 const P=s=>new Date(s+'T12:00:00'),wdi=d=>(d.getDay()+6)%7;
 const addD=(s,n)=>{const d=P(s);d.setDate(d.getDate()+n);return iso(d)};
 const wd=s=>wdi(P(s)),ws=s=>addD(s,-wd(s));
 const fd=s=>P(s).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 const fs=s=>P(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+const fm=mo=>P(mo+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 const wkn=s=>{const d=P(s);d.setDate(d.getDate()+3-wdi(d));const y=new Date(d.getFullYear(),0,4);return 1+Math.round(((d-y)/864e5-3+wdi(y))/7)};
 const wt=w=>`Semaine ${wkn(w)} · ${fs(w)} – ${fs(addD(w,6))}`;
 const m=t=>t?+t.slice(0,2)*60+ +t.slice(3,5):null;
-const hm=x=>{x=Math.max(0,Math.round(x));return Math.floor(x/60)+'h'+p(x%60)};
+const hm=x=>{x=Math.max(0,Math.round(x));return Math.floor(x/60)+'h'+p(x%60)},sh=x=>(x<0?'−':'')+hm(Math.abs(x));
 const eur=v=>v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
-const TYn={normal:'Normale',chantier:'Chantier',ecole:'École'},JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-const LB={o:[['s','Arrivée'],['lo','Début pause'],['li','Fin pause'],['e','Départ']],c:[['dep','Départ maison'],['arr','Arrivée chantier'],['lea','Départ chantier'],['ret','Retour maison']]};
-const OI=['s','lo','li','e'];
+const TYn={normal:'Normale',chantier:'Chantier',ecole:'École',cp:'Congé',rec:'Récup'},JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const LB={o:[['s','Arrivée'],['lo','Début pause'],['li','Fin pause'],['e','Départ']],c:[['dep','Départ entreprise'],['arr','Arrivée chantier'],['lea','Départ chantier'],['ret','Retour entreprise']]};
+const OI=['s','lo','li','e'],CI=['dep','arr','lea','ret'];
 
 /* ---------- Calculs ---------- */
 const span=(a,b)=>a==null||b==null?0:b>=a?b-a:b+1440-a;
 const tm=t=>!t.w?0:(t.lo&&t.li?m(t.lo)-m(t.s)+m(t.e)-m(t.li):m(t.e)-m(t.s))||0;
 const ref=s=>Math.max(0,tm(S.set.tpl[wd(s)]));
-const baseMin=()=>S.set.tpl.reduce((a,t)=>a+Math.max(0,tm(t)),0);
+const baseMin=k=>S.set[k||'tpl'].reduce((a,t)=>a+Math.max(0,tm(t)),0);
 function office(t){const s=m(t.s),lo=m(t.lo),li=m(t.li),e=m(t.e);if(s==null)return 0;
  if(lo!=null){let x=Math.max(0,lo-s);if(li!=null&&e!=null)x+=Math.max(0,e-li);return x}
  return e!=null?Math.max(0,e-s):0}
-function raw(s,d){const r=ref(s),t=d.t;
- if(d.type=='chantier'){const a=m(t.arr),l=m(t.lea),tr=span(m(t.dep),a)+span(l,m(t.ret));
-  const site=a!=null&&l!=null?Math.max(0,span(a,l)-d.meal):0;return[Math.min(site,r),Math.max(0,site-r),tr]}
- if(d.type=='ecole'&&d.flat)return[r,0,0];
- const w=office(t);return[Math.min(w,r),Math.max(0,w-r),0]}
+function raw(s,d){const t=d.t,r=ref(s),ex=(d.x||[]).reduce((a,q)=>a+span(m(q.s),m(q.e)),0),o={n:0,o:0,tr:0,cp:0,rc:0};
+ if(d.type=='chantier'){const a=m(t.arr),l=m(t.lea),site=a!=null&&l!=null?Math.max(0,span(a,l)-d.meal):0;
+  o.n=Math.min(site,r);o.o=Math.max(0,site-r)+ex;o.tr=(d.ng?0:span(m(t.dep),a))+(d.nb?0:span(l,m(t.ret)))}
+ else if(d.type=='ecole')o.n=office(t);
+ else if(d.type=='cp')o.cp=d.h??r;
+ else if(d.type=='rec')o.rc=d.h??r;
+ else{const w=office(t);o.n=Math.min(w,r);o.o=Math.max(0,w-r)+ex}
+ return o}
+function tpl(d,s){const t=S.set[d.type=='ecole'?'tplE':'tpl'][wd(s)];OI.forEach(k=>delete d.t[k]);if(t.w)OI.forEach(k=>{if(t[k])d.t[k]=t[k]})}
+function vd(s){const d={type:'normal',t:{},x:[],meal:S.set.mealStd,red:false,night:false,ng:0,nb:0};tpl(d,s);return d}
+const elig=s=>S.set.tpl[wd(s)].w&&s>=S.since&&s<=TD();
+function all(){const R={};for(let s=S.since,n=0;s<=TD()&&n<800;s=addD(s,1),n++)if(elig(s))R[s]=vd(s);return Object.assign(R,S.days)}
 function evalAll(){const R={},W={},th=S.set.thr*60;
- for(const s in S.days)(W[ws(s)]??=[]).push(s);
+ for(const s in A)(W[ws(s)]??=[]).push(s);
  const sp=(x,c)=>{const l=Math.min(x,Math.max(0,th-c.v));c.v+=x;return[l,x-l]};
  for(const k in W){const c={v:0};
-  for(const s of W[k].sort()){const d=S.days[s],[n,o,tr]=raw(s,d),e={n,night:d.type=='chantier'&&!!d.night};
-   [e.o1,e.o2]=sp(o,c);
-   if(S.set.truckIn){[e.c1,e.c2]=sp(tr,c)}else{e.c1=tr;e.c2=0}
+  for(const s of W[k].sort()){const d=A[s],o=raw(s,d),e={n:o.n,cp:o.cp,rec:o.rc,night:d.type=='chantier'&&!!d.night};
+   [e.o1,e.o2]=sp(o.o,c);
+   if(S.set.truckIn){[e.c1,e.c2]=sp(o.tr,c)}else{e.c1=o.tr;e.c2=0}
    R[s]=e}}
  return R}
-const tot=l=>{const t={n:0,o1:0,o2:0,c1:0,c2:0,nt:0};
- for(const s of l){const e=E[s];if(!e)continue;t.n+=e.n;t.o1+=e.o1;t.o2+=e.o2;t.c1+=e.c1;t.c2+=e.c2;if(e.night)t.nt++}return t};
+const tot=l=>{const t={n:0,cp:0,rec:0,o1:0,o2:0,c1:0,c2:0,nt:0};
+ for(const s of l){const e=E[s];if(!e)continue;for(const k of['n','cp','rec','o1','o2','c1','c2'])t[k]+=e[k];if(e.night)t.nt++}return t};
+function net(t){const f1=1+S.set.r1/100,f2=1+S.set.r2/100;let r=t.rec;
+ const d2=Math.min(t.o2,r/f2);r-=d2*f2;const d1=Math.min(t.o1,r/f1);r-=d1*f1;
+ return{o1:t.o1-d1,o2:t.o2-d2,ex:Math.max(0,r)}}
 const rw=(a,b)=>`<div class="r"><span>${a}</span><b>${b}</b></div>`;
-function sum(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,pe=t.n+(t.o1+t.c1)*(1+c.r1/100)+(t.o2+t.c2)*(1+c.r2/100);
- return rw('Heures normales',hm(t.n)+(base?' / '+hm(base):''))+rw('Heures sup à '+a+' %',hm(t.o1))+rw('Heures sup à '+b+' %',hm(t.o2))
-  +rw('Heures de camion à '+a+' %',hm(t.c1))+rw('Heures de camion à '+b+' %',hm(t.c2))
-  +rw('Nuits en découcher',t.nt)+rw('Prime de nuit',eur(t.nt*c.bonus))+rw('Total en heures payées',hm(pe))}
+function sum(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,q=net(t),pn=t.n+t.cp+t.rec;
+ let h=rw('Heures normales',hm(t.n)+(base?' / '+hm(base):''));
+ if(t.cp)h+=rw('Congés payés',hm(t.cp));
+ h+=rw('Heures sup à '+a+' %',hm(t.o1))+rw('Heures sup à '+b+' %',hm(t.o2));
+ if(t.rec){h+=rw('Récupérations prises',hm(t.rec))+rw('Heures sup restantes à '+a+' %',hm(q.o1))+rw('Heures sup restantes à '+b+' %',hm(q.o2));
+  if(q.ex>0)h+=rw('Récup non couverte par les heures sup',hm(q.ex))}
+ h+=rw('Heures de camion à '+a+' %',hm(t.c1))+rw('Heures de camion à '+b+' %',hm(t.c2))+rw('Nuits en découcher',t.nt)+rw('Prime de nuit',eur(t.nt*c.bonus));
+ if(c.rate>0){const e1=pn/60*c.rate,e2=((q.o1+t.c1)*(1+c.r1/100)+(q.o2+t.c2)*(1+c.r2/100))/60*c.rate;
+  h+=rw('Estimation heures normales',eur(e1))+rw('Estimation sup + camion',eur(e2))+rw('Total estimé (brut)',eur(e1+e2+t.nt*c.bonus))}
+ return h}
 
 /* ---------- Actions ---------- */
-const cur=()=>S.days[V.date],done=()=>{save();render()};
-function tpl(d){const t=S.set.tpl[wd(V.date)];OI.forEach(k=>delete d.t[k]);if(t.w)OI.forEach(k=>{if(t[k])d.t[k]=t[k]})}
-function mk(t){const d={type:t,t:{},meal:S.set.mealStd,red:false,night:false,flat:true,note:''};S.days[V.date]=d;if(t!='chantier')tpl(d);done()}
-function ty(t){const d=cur();d.type=t;if(t!='chantier'&&!OI.some(k=>d.t[k]))tpl(d);done()}
-function pu(k){cur().t[k]=new Date().toTimeString().slice(0,5);done()}
-function setT(k,v){v?cur().t[k]=v:delete cur().t[k];done()}
-function up(k,v){cur()[k]=v;done()}
-function rd(on){const d=cur();d.red=on;d.meal=on?S.set.mealRed:S.set.mealStd;done()}
-function clr(){OI.forEach(k=>delete cur().t[k]);done()}
-function ref0(){tpl(cur());done()}
-function del(){if(confirm('Supprimer cette journée ?')){delete S.days[V.date];done()}}
+const ens=()=>S.days[V.date]||(S.days[V.date]=cl(A[V.date])),done=()=>{save();render()};
+const go=s=>{V.date=s;V.tab='p';render()};
+function mk(t){const d={type:t,t:{},x:[],meal:S.set.mealStd,red:false,night:false,ng:0,nb:0};S.days[V.date]=d;if(t=='normal'||t=='ecole')tpl(d,V.date);done()}
+function ty(t){const d=ens();d.type=t;if(t=='chantier')OI.forEach(k=>delete d.t[k]);else{CI.forEach(k=>delete d.t[k]);d.ng=d.nb=0}
+ if(t=='normal'||t=='ecole')tpl(d,V.date);if(t=='ecole')d.x=[];done()}
+function pu(k){ens().t[k]=new Date().toTimeString().slice(0,5);done()}
+function setT(k,v){const d=ens();v?d.t[k]=v:delete d.t[k];done()}
+function up(k,v){ens()[k]=v;done()}
+function fl(k,v){const d=ens();d[k]=v;if(v)delete d.t[k=='ng'?'dep':'ret'];done()}
+function rd(on){const d=ens();d.red=on;d.meal=on?S.set.mealRed:S.set.mealStd;done()}
+function ax(){const d=ens(),l=(d.x||[]).slice(-1)[0];(d.x=d.x||[]).push({s:(l&&l.e)||d.t.ret||d.t.e||'',e:''});done()}
+function rx(i){ens().x.splice(i,1);done()}
+function sx(i,k,v){ens().x[i][k]=v;done()}
+function rf(){tpl(ens(),V.date);done()}
+function clr(){const d=ens();OI.forEach(k=>delete d.t[k]);done()}
+function del(){if(confirm(elig(V.date)?'Rétablir la journée normale par défaut ?':'Supprimer cette journée ?')){delete S.days[V.date];done()}}
 function cfg(k,v){S.set[k]=typeof v=='boolean'?v:(+String(v).replace(',','.')||0);done()}
-function tc(i,k,v){S.set.tpl[i][k]=v;done()}
-function rst(){if(confirm('Effacer toutes les journées ?')){S.days={};done()}}
+function tc(k,i,f,v){S.set[k][i][f]=v;done()}
+function maj(){const r=navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([]);r.then(x=>Promise.all(x.map(y=>y.unregister()))).then(()=>window.caches?caches.keys():[]).then(k=>Promise.all(k.map(y=>caches.delete(y)))).then(()=>location.reload())}
+function rst(){if(confirm('Effacer toutes les saisies (les journées normales par défaut reviendront) ?')){S.days={};done()}}
 function csv(){const f=x=>(x/60).toFixed(2).replace('.',','),a=100+S.set.r1,b=100+S.set.r2;
- const L=['Date;Type;Heures normales;Sup '+a+'%;Sup '+b+'%;Camion '+a+'%;Camion '+b+'%;Nuit;Note'];
- Object.keys(S.days).sort().forEach(s=>{const d=S.days[s],e=E[s];L.push([s,TYn[d.type],f(e.n),f(e.o1),f(e.o2),f(e.c1),f(e.c2),e.night?1:0,(d.note||'').replace(/[;\n]/g,' ')].join(';'))});
- const u=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'})),k=document.createElement('a');
- k.href=u;k.download='heures.csv';k.click()}
+ const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion '+a+'%;Camion '+b+'%;Nuit'];
+ Object.keys(A).sort().forEach(s=>{const e=E[s];L.push([s,TYn[A[s].type],f(e.n),f(e.cp),f(e.rec),f(e.o1),f(e.o2),f(e.c1),f(e.c2),e.night?1:0].join(';'))});
+ const u=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'})),k=document.createElement('a');k.href=u;k.download='heures.csv';k.click()}
 
 /* ---------- Vues ---------- */
-function pv(){const d=cur();
- let h=`<div class="card"><div class="r"><input type="date" value="${V.date}" onchange="V.date=this.value||iso(new Date());render()"><button class="lk" onclick="V.date=iso(new Date());render()">Aujourd’hui</button></div></div>`;
+function pv(){const d=A[V.date];
+ let h=`<div class="card"><div class="r"><input type="date" value="${V.date}" onchange="V.date=this.value||TD();render()"><button class="lk" onclick="V.date=TD();render()">Aujourd’hui</button></div></div>`;
  if(!d)h+=`<h2>${fd(V.date)} : choisis le type de journée</h2>`+Object.entries(TYn).map(([k,n])=>`<button class="big" onclick="mk('${k}')">${n}</button>`).join('');
- else{const c=d.type=='chantier',L=c?LB.c:LB.o,e=E[V.date]||{n:0,o1:0,o2:0,c1:0,c2:0},eh=d.type!='ecole'||!d.flat;
+ else{const c=d.type=='chantier',lv=d.type=='cp'||d.type=='rec',e=E[V.date],L=c?LB.c:LB.o,hid=k=>(k=='dep'&&d.ng)||(k=='ret'&&d.nb);
   h+=`<div class="seg">${Object.entries(TYn).map(([k,n])=>`<button class="${d.type==k?'on':''}" onclick="ty('${k}')">${n}</button>`).join('')}</div>`;
-  h+=`<h2>Pointage rapide (heure actuelle)</h2><div class="card g">${L.map(([k,n])=>`<button class="pb" onclick="pu('${k}')">${n}<b>${d.t[k]||'—'}</b></button>`).join('')}</div>`;
-  h+=`<h2>Horaires</h2><div class="card">`;
-  if(d.type=='ecole')h+=`<label class="r"><span>Forfait journalier standard</span><input type="checkbox" ${d.flat?'checked':''} onchange="up('flat',this.checked)"></label>`;
-  if(eh)h+=L.map(([k,n])=>`<div class="r"><span>${n}</span><input type="time" value="${d.t[k]||''}" onchange="setT('${k}',this.value)"></div>`).join('');
-  if(eh&&!c)h+=`<div class="r"><button class="lk" onclick="ref0()">Horaires de référence</button><button class="lk rd" onclick="clr()">Effacer</button></div>`;
-  h+='</div>';
-  if(c)h+=`<h2>Repas et nuit</h2><div class="card"><label class="r"><span>Temps de repas réduit</span><input type="checkbox" ${d.red?'checked':''} onchange="rd(this.checked)"></label>
-   <div class="r"><span>Pause repas</span><span><input type="number" inputmode="numeric" value="${d.meal}" onchange="up('meal',Math.max(0,+this.value||0))"> min</span></div>
-   <label class="r"><span>Nuit sur place (découcher)</span><input type="checkbox" ${d.night?'checked':''} onchange="up('night',this.checked)"></label></div>`;
-  h+=`<h2>Récapitulatif du jour</h2><div class="card">${rw('Heures normales',hm(e.n))}${rw('Heures supplémentaires',hm(e.o1+e.o2))}${e.o2?rw('dont à '+(100+S.set.r2)+' %',hm(e.o2)):''}`
-   +(c?rw('Heures de camion',hm(e.c1+e.c2))+(d.night?rw('Découcher',eur(S.set.bonus)):'')+((!d.t.arr||!d.t.lea)?'<div class="r"><small>Renseigne l’arrivée et le départ du chantier pour calculer les heures.</small></div>':''):'')+'</div>';
-  h+=`<div class="card"><textarea placeholder="Remarque (facultatif)" onchange="up('note',this.value)">${(d.note||'').replace(/</g,'&lt;')}</textarea><div class="r"><button class="lk rd" onclick="del()">Supprimer cette journée</button></div></div>`}
- const w=ws(V.date);
- return h+`<h2>${wt(w)}</h2><div class="card">${sum(tot(Object.keys(S.days).filter(s=>ws(s)==w)),baseMin())}</div>`}
+  if(lv)h+=`<h2>${d.type=='cp'?'Congé payé':'Récupération'}</h2><div class="card"><div class="r"><span>Durée</span><span><input type="number" inputmode="decimal" step="0.25" value="${(d.h??ref(V.date))/60}" onchange="up('h',Math.max(0,Math.round((+String(this.value).replace(',','.')||0)*60)))"> h</span></div>
+   <div class="r"><small>${d.type=='cp'?'Compté comme heures normales payées.':'Payée comme du temps normal. Elle est prise d’abord sur les heures sup à '+(100+S.set.r2)+' % (1 h compte pour 1h30 de repos), puis sur celles à '+(100+S.set.r1)+' % (1 h compte pour 1h15). Pas sur le camion.'} Par défaut : la durée de la journée.</small></div></div>`;
+  else{
+   h+=`<h2>Pointage rapide (heure actuelle)</h2><div class="card g">${L.filter(([k])=>!hid(k)).map(([k,n])=>`<button class="pb" onclick="pu('${k}')">${n}<b>${d.t[k]||'—'}</b></button>`).join('')}</div>`;
+   h+=`<h2>Horaires</h2><div class="card">`+L.map(([k,n])=>hid(k)?'':`<div class="r"><span>${n}</span><span><input type="time" value="${d.t[k]||''}" onchange="setT('${k}',this.value)">${k=='dep'?`<button class="lk rd" title="Pas de trajet aller" onclick="fl('ng',1)"> −</button>`:k=='ret'?`<button class="lk rd" title="Pas de trajet retour" onclick="fl('nb',1)"> −</button>`:''}</span></div>`).join('');
+   if(c&&d.ng)h+=`<div class="r"><button class="lk" onclick="fl('ng',0)">+ Rétablir le trajet aller</button></div>`;
+   if(c&&d.nb)h+=`<div class="r"><button class="lk" onclick="fl('nb',0)">+ Rétablir le trajet retour</button></div>`;
+   if(!c)h+=`<div class="r"><button class="lk" onclick="rf()">${d.type=='ecole'?'Horaires école':'Horaires de référence'}</button><button class="lk rd" onclick="clr()">Effacer</button></div>`;
+   h+='</div>';
+   if(d.type!='ecole')h+=`<h2>Heures sup en plus (débriefing, déchargement…)</h2><div class="card">`+(d.x||[]).map((q,i)=>`<div class="r"><span>De <input type="time" value="${q.s||''}" onchange="sx(${i},'s',this.value)"> à <input type="time" value="${q.e||''}" onchange="sx(${i},'e',this.value)"></span><button class="lk rd" onclick="rx(${i})">−</button></div>`).join('')+`<div class="r"><button class="lk" onclick="ax()">+ Ajouter une ligne</button></div></div>`;
+   if(c)h+=`<h2>Repas et nuit</h2><div class="card"><label class="r"><span>Temps de repas réduit</span><input type="checkbox" ${d.red?'checked':''} onchange="rd(this.checked)"></label>
+    <div class="r"><span>Pause repas</span><span><input type="number" inputmode="numeric" value="${d.meal}" onchange="up('meal',Math.max(0,+this.value||0))"> min</span></div>
+    <label class="r"><span>Nuit sur place (découcher)</span><input type="checkbox" ${d.night?'checked':''} onchange="up('night',this.checked)"></label></div>`}
+  h+=`<h2>Récapitulatif du jour</h2><div class="card">`+(lv?rw(d.type=='cp'?'Congé payé':'Récupération',hm(e.cp+e.rec)):rw('Heures normales',hm(e.n))+rw('Heures supplémentaires',hm(e.o1+e.o2))+(e.o2?rw('dont à '+(100+S.set.r2)+' %',hm(e.o2)):'')
+   +(c?rw('Heures de camion',hm(e.c1+e.c2))+(d.night?rw('Découcher',eur(S.set.bonus)):'')+((!d.t.arr||!d.t.lea)?'<div class="r"><small>Renseigne l’arrivée et le départ du chantier pour calculer les heures.</small></div>':''):''))+'</div>';
+  if(S.days[V.date])h+=`<div class="card"><div class="r"><button class="lk rd" onclick="del()">${elig(V.date)?'Rétablir la journée normale par défaut':'Supprimer cette journée'}</button></div></div>`}
+ const mo=V.date.slice(0,7);
+ return h+`<h2>Récapitulatif · ${fm(mo)}</h2><div class="card">${sum(tot(Object.keys(A).filter(s=>s.startsWith(mo))))}</div>`}
 
-function hv(){const ks=Object.keys(S.days);
- let h=`<div class="seg">${[['j','Jours'],['s','Semaines'],['m','Mois']].map(([k,n])=>`<button class="${V.h==k?'on':''}" onclick="V.h='${k}';render()">${n}</button>`).join('')}</div>`;
+function hv(){const ks=Object.keys(A);
+ let h=`<div class="seg">${[['m','Mois'],['s','Semaines'],['j','Jours']].map(([k,n])=>`<button class="${V.h==k?'on':''}" onclick="V.h='${k}';render()">${n}</button>`).join('')}</div>`;
  if(!ks.length)return h+'<p class="mu">Aucune journée enregistrée.</p>';
  if(V.h=='m'){for(const mo of [...new Set(ks.map(s=>s.slice(0,7)))].sort().reverse())
-   h+=`<h2>${P(mo+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</h2><div class="card">${sum(tot(ks.filter(s=>s.startsWith(mo))))}</div>`;
-  return h}
+   h+=`<h2>${fm(mo)}</h2><div class="card">${sum(tot(ks.filter(s=>s.startsWith(mo))))}</div>`;return h}
  for(const w of [...new Set(ks.map(ws))].sort().reverse()){const l=ks.filter(s=>ws(s)==w).sort().reverse();
   h+=`<h2>${wt(w)}</h2><div class="card">`;
-  h+=V.h=='s'?sum(tot(l),baseMin()):l.map(s=>{const e=E[s],d=S.days[s],o=e.o1+e.o2,c=e.c1+e.c2;
-   return `<div class="r tap" onclick="V.date='${s}';V.tab='p';render()"><span>${fd(s)}<br><small>${TYn[d.type]}</small></span><span style="text-align:right">${hm(e.n)}${e.night?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('');
+  h+=V.h=='s'?sum(tot(l),baseMin()):l.map(s=>{const e=E[s],d=A[s],o=e.o1+e.o2,c=e.c1+e.c2;
+   return `<div class="r tap" onclick="go('${s}')"><span>${fd(s)}<br><small>${TYn[d.type]}</small></span><span style="text-align:right">${hm(e.n+e.cp+e.rec)}${e.night?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('');
   h+='</div>'}
  return h}
 
+function tpb(k,t){let h=`<h2>${t} · ${hm(baseMin(k))} par semaine</h2><div class="card">`;
+ JN.forEach((j,i)=>{const o=S.set[k][i];h+=`<div class="tp"><label><input type="checkbox" ${o.w?'checked':''} onchange="tc('${k}',${i},'w',this.checked)"> <b>${j}</b></label>`
+  +(o.w?OI.map((f,x)=>`<input type="time" title="${LB.o[x][1]}" value="${o[f]||''}" onchange="tc('${k}',${i},'${f}',this.value)">`).join(''):'')+'</div>'});
+ return h+'</div>'}
 function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><input type="number" inputmode="decimal" step="any" value="${c[k]}" onchange="cfg('${k}',this.value)"> ${u}</span></div>`;
- let h=`<h2>Prime de nuit (découcher)</h2><div class="card">${n('bonus','Montant par nuit','€')}</div>
+ return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de nuit (par nuit)','€')}</div>
  <h2>Majorations hebdomadaires</h2><div class="card">${n('thr','Seuil d’heures sup','h / sem.')}${n('r1','Majoration de base','%')}${n('r2','Majoration au-delà du seuil','%')}
  <label class="r"><span>Camion compté dans le seuil</span><input type="checkbox" ${c.truckIn?'checked':''} onchange="cfg('truckIn',this.checked)"></label></div>
  <h2>Repas sur chantier</h2><div class="card">${n('mealStd','Repas standard','min')}${n('mealRed','Repas réduit','min')}</div>
- <h2>Horaires de référence · ${hm(baseMin())} par semaine</h2><div class="card">`;
- JN.forEach((j,i)=>{const t=c.tpl[i];h+=`<div class="tp"><label><input type="checkbox" ${t.w?'checked':''} onchange="tc(${i},'w',this.checked)"> <b>${j}</b></label>`
-  +(t.w?OI.map((k,x)=>`<input type="time" title="${LB.o[x][1]}" value="${t[k]||''}" onchange="tc(${i},'${k}',this.value)">`).join(''):'')+'</div>'});
- return h+`</div><p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées normales dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
+ ${tpb('tpl','Horaires normaux')}${tpb('tplE','Horaires école')}
+ <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 3</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
-function render(){E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
+function render(){A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==V.tab))}
+/* migration */
+(function(){if(S.v!=2){S.v=2;if(!S.set.bonus)S.set.bonus=10;for(const s in S.days){const d=S.days[s];d.x=d.x||[];if(d.type=='ecole'&&!OI.some(k=>d.t[k]))tpl(d,s)}}
+ if(!S.since){const ks=Object.keys(S.days).sort(),f=TD().slice(0,8)+'01';S.since=ks.length&&ks[0]<f?ks[0].slice(0,8)+'01':f}
+ save()})();
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 navigator.storage&&navigator.storage.persist&&navigator.storage.persist();
