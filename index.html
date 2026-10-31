@@ -12,8 +12,9 @@
 <link rel="apple-touch-icon" href="icon.png">
 <title>Suivi Heures</title>
 <style>
-:root{--bg:#f3f1ee;--c:#fff;--t:#1c1b1a;--s:#77716a;--a:#e8590c;--at:#fde3d3;--l:#e4e0db}
-@media(prefers-color-scheme:dark){:root{--bg:#141312;--c:#211f1d;--t:#f4f1ed;--s:#a29b92;--a:#ff8a4c;--at:#4a2a18;--l:#383431}}
+:root{--bg:#f3f1ee;--c:#fff;--t:#1c1b1a;--s:#77716a;--a:#e8590c;--at:rgba(232,89,12,.18);--l:#e4e0db}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141312;--c:#211f1d;--t:#f4f1ed;--s:#a29b92;--l:#383431}}
+:root[data-theme=dark]{--bg:#141312;--c:#211f1d;--t:#f4f1ed;--s:#a29b92;--l:#383431}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font:16px/1.35 -apple-system,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--t);padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
@@ -24,26 +25,38 @@ h2{font-size:14px;font-weight:600;color:var(--s);margin:18px 4px 6px}
 .r:last-child{border:0}
 .tap{cursor:pointer}
 small,.mu{color:var(--s)}
+.cap{font-size:13px;color:var(--s);padding:12px 0 2px}
 .seg{display:flex;background:var(--l);border-radius:10px;padding:3px;margin:0 0 10px}
-.seg button{flex:1;border:0;background:none;padding:9px 2px;font-size:14px;border-radius:8px;color:var(--t);font:inherit}
+.seg button{flex:1;border:0;background:none;padding:9px 2px;font-size:14px;border-radius:8px;color:var(--t);font-family:inherit}
 .seg .on{background:var(--c);font-weight:600;box-shadow:0 1px 3px #0003}
-.g{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
-.pb{border:0;border-radius:12px;background:var(--at);color:var(--t);padding:14px 8px;font:inherit}
-.pb:active{transform:scale(.97)}
-.pb b{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin-top:2px}
-input,textarea{font:inherit;color:var(--t);background:var(--bg);border:0;border-radius:8px;padding:7px 9px;max-width:100%}
+input,select{font:inherit;color:var(--t);background:var(--bg);border:0;border-radius:8px;padding:7px 9px;max-width:100%}
 input[type=number]{width:84px;text-align:right}
 input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
-textarea{width:100%;margin:8px 0;min-height:60px}
 .lk{border:0;background:none;color:var(--a);font:inherit;padding:2px 0}
 .rd{color:#d92d20}
 .tp{padding:10px 0;border-bottom:1px solid var(--l);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tp label{width:100%}.tp input[type=time]{flex:1;min-width:0;padding:7px 4px}
+.tp label{width:100%}.tp select{flex:1;min-width:0;padding:7px 2px}
 .big{display:block;width:100%;border:0;border-radius:12px;background:var(--a);color:#fff;padding:14px;font:600 16px inherit;margin:0 0 10px}
+.lb{display:flex;align-items:center;gap:10px}
+.sp{width:32px;flex:none}
+.mb{width:32px;height:32px;flex:none;border-radius:50%;border:0;background:#d92d20;color:#fff;font:700 24px/1 -apple-system,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;padding:0 0 3px}
+.mb.pl{background:var(--a)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:2px 0 10px}
+.cal i{font-style:normal;font-size:12px;color:var(--s);text-align:center;padding:4px 0}
+.cal button{border:0;background:var(--bg);color:var(--t);border-radius:10px;padding:6px 0 4px;min-height:50px;font:600 16px -apple-system,system-ui,sans-serif}
+.cal button small{display:block;font-size:10px;min-height:12px;font-weight:500}
+.cal .we{opacity:.6}.cal .td{outline:2px solid var(--a)}
+.cal .sel{background:var(--a);color:#fff;opacity:1}.cal .sel small{color:#fffd}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:10px 0 8px}
+.ch button{border:0;background:var(--bg);color:var(--a);width:38px;height:38px;border-radius:50%;font:700 22px/1 -apple-system,system-ui,sans-serif;padding:0 0 3px}
+.sw{display:flex;flex-wrap:wrap;gap:12px;padding:12px 0}
+.sw button{width:38px;height:38px;border-radius:50%;border:3px solid var(--c);box-shadow:0 0 0 1px var(--l)}
+.sw .on{box-shadow:0 0 0 3px var(--t)}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);border-top:1px solid var(--l);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
 nav .on{color:var(--a)}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 </head>
 <body>
 <main id="app"></main>
@@ -55,29 +68,34 @@ nav .on{color:var(--a)}
 <script>
 const K='suiviheures.v1',$=s=>document.querySelector(s),p=n=>String(n).padStart(2,'0'),cl=x=>JSON.parse(JSON.stringify(x));
 const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00'),FR=(w=1)=>T('08:15','','','12:15',w),E8=()=>T('08:00','12:00','13:45','17:45');
-const DEF={bonus:10,rate:0,thr:8,r1:25,r2:50,truckIn:false,mealStd:60,mealRed:30,
+const DEF={bonus:10,nuit:100,rate:0,thr:8,r1:25,r2:50,mealStd:60,mealRed:30,acc:'#e8590c',theme:'auto',
  tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)],
  tplE:[T('09:00','12:00','13:45','17:45'),E8(),E8(),E8(),T('08:00','','','12:00'),T('08:00','','','12:00',0),T('08:00','','','12:00',0)]};
 let S,A={},E={};
-try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v}}catch(e){S={days:{},set:cl(DEF),v:2}}
+try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v}}catch(e){S={days:{},set:cl(DEF),v:4}}
 const save=()=>{localStorage[K]=JSON.stringify(S)};
-const V={tab:'p',date:null,h:'m'};
+const V={tab:'p',date:null,cm:null,h:'m'};
 const iso=d=>d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-const TD=()=>iso(new Date());V.date=TD();
+const TD=()=>iso(new Date());V.date=TD();V.cm=V.date.slice(0,7);
 const P=s=>new Date(s+'T12:00:00'),wdi=d=>(d.getDay()+6)%7;
 const addD=(s,n)=>{const d=P(s);d.setDate(d.getDate()+n);return iso(d)};
 const wd=s=>wdi(P(s)),ws=s=>addD(s,-wd(s));
-const fd=s=>P(s).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+const fd=s=>P(s).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+const fds=s=>P(s).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 const fs=s=>P(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-const fm=mo=>P(mo+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+const fm=mo=>{const x=P(mo+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return x[0].toUpperCase()+x.slice(1)};
 const wkn=s=>{const d=P(s);d.setDate(d.getDate()+3-wdi(d));const y=new Date(d.getFullYear(),0,4);return 1+Math.round(((d-y)/864e5-3+wdi(y))/7)};
 const wt=w=>`Semaine ${wkn(w)} · ${fs(w)} – ${fs(addD(w,6))}`;
 const m=t=>t?+t.slice(0,2)*60+ +t.slice(3,5):null;
-const hm=x=>{x=Math.max(0,Math.round(x));return Math.floor(x/60)+'h'+p(x%60)},sh=x=>(x<0?'−':'')+hm(Math.abs(x));
+const hm=x=>{x=Math.max(0,Math.round(x));return Math.floor(x/60)+'h'+p(x%60)};
 const eur=v=>v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
-const TYn={normal:'Normale',chantier:'Chantier',ecole:'École',cp:'Congé',rec:'Récup'},JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-const LB={o:[['s','Arrivée'],['lo','Début pause'],['li','Fin pause'],['e','Départ']],c:[['dep','Départ entreprise'],['arr','Arrivée chantier'],['lea','Départ chantier'],['ret','Retour entreprise']]};
+const TYn={normal:'Atelier',chantier:'Chantier',ecole:'École',cp:'Congé'},JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const LB={o:[['s','Arrivée'],['lo','Début pause'],['li','Fin pause'],['e','Départ']],c:[['dep','Départ atelier'],['arr','Arrivée chantier'],['lea','Départ chantier'],['ret','Arrivée atelier']]};
+const QS=[];for(let i=0;i<96;i++)QS.push(p(i>>2)+':'+p(i%4*15));
+const hl=v=>+v.slice(0,2)+'h'+v.slice(3);
+const qs=(v,on,ti)=>`<select ${ti?`title="${ti}" `:''}onchange="${on}"><option value="">—</option>`+(v&&!QS.includes(v)?`<option value="${v}" selected>${hl(v)}</option>`:'')+QS.map(q=>`<option value="${q}"${q==v?' selected':''}>${hl(q)}</option>`).join('')+'</select>';
 const OI=['s','lo','li','e'],CI=['dep','arr','lea','ret'];
+const PAL=[['Orange','#e8590c'],['Bleu','#0a84ff'],['Vert','#2f9e44'],['Rouge','#e03131'],['Violet','#7048e8'],['Rose','#d6336c'],['Turquoise','#0c8599'],['Ambre','#d98200'],['Ardoise','#495057']];
 
 /* ---------- Calculs ---------- */
 const span=(a,b)=>a==null||b==null?0:b>=a?b-a:b+1440-a;
@@ -87,125 +105,156 @@ const baseMin=k=>S.set[k||'tpl'].reduce((a,t)=>a+Math.max(0,tm(t)),0);
 function office(t){const s=m(t.s),lo=m(t.lo),li=m(t.li),e=m(t.e);if(s==null)return 0;
  if(lo!=null){let x=Math.max(0,lo-s);if(li!=null&&e!=null)x+=Math.max(0,e-li);return x}
  return e!=null?Math.max(0,e-s):0}
-function raw(s,d){const t=d.t,r=ref(s),ex=(d.x||[]).reduce((a,q)=>a+span(m(q.s),m(q.e)),0),o={n:0,o:0,tr:0,cp:0,rc:0};
+function raw(s,d){const t=d.t,r=ref(s),ex=(d.x||[]).reduce((a,q)=>a+span(m(q.s),m(q.e)),0),o={n:0,o:0,tr:0,cp:0,rc:d.rh||0};
  if(d.type=='chantier'){const a=m(t.arr),l=m(t.lea),site=a!=null&&l!=null?Math.max(0,span(a,l)-d.meal):0;
   o.n=Math.min(site,r);o.o=Math.max(0,site-r)+ex;o.tr=(d.ng?0:span(m(t.dep),a))+(d.nb?0:span(l,m(t.ret)))}
  else if(d.type=='ecole')o.n=office(t);
  else if(d.type=='cp')o.cp=d.h??r;
- else if(d.type=='rec')o.rc=d.h??r;
  else{const w=office(t);o.n=Math.min(w,r);o.o=Math.max(0,w-r)+ex}
  return o}
 function tpl(d,s){const t=S.set[d.type=='ecole'?'tplE':'tpl'][wd(s)];OI.forEach(k=>delete d.t[k]);if(t.w)OI.forEach(k=>{if(t[k])d.t[k]=t[k]})}
-function vd(s){const d={type:'normal',t:{},x:[],meal:S.set.mealStd,red:false,night:false,ng:0,nb:0};tpl(d,s);return d}
+function vd(s){const d={type:'normal',t:{},x:[],meal:S.set.mealStd,red:false,night:false,nw:false,ng:0,nb:0,rh:0};tpl(d,s);return d}
 const elig=s=>S.set.tpl[wd(s)].w&&s>=S.since&&s<=TD();
 function all(){const R={};for(let s=S.since,n=0;s<=TD()&&n<800;s=addD(s,1),n++)if(elig(s))R[s]=vd(s);return Object.assign(R,S.days)}
 function evalAll(){const R={},W={},th=S.set.thr*60;
  for(const s in A)(W[ws(s)]??=[]).push(s);
- const sp=(x,c)=>{const l=Math.min(x,Math.max(0,th-c.v));c.v+=x;return[l,x-l]};
- for(const k in W){const c={v:0};
-  for(const s of W[k].sort()){const d=A[s],o=raw(s,d),e={n:o.n,cp:o.cp,rec:o.rc,night:d.type=='chantier'&&!!d.night};
-   [e.o1,e.o2]=sp(o.o,c);
-   if(S.set.truckIn){[e.c1,e.c2]=sp(o.tr,c)}else{e.c1=o.tr;e.c2=0}
-   R[s]=e}}
+ for(const k in W){let cum=0;
+  for(const s of W[k].sort()){const d=A[s],o=raw(s,d),l=Math.min(o.o,Math.max(0,th-cum));cum+=o.o;
+   R[s]={n:o.n,cp:o.cp,rec:o.rc,o1:l,o2:o.o-l,c1:o.tr,c2:0,night:d.type=='chantier'&&!!d.night&&!d.nw,nw:d.type=='chantier'&&!!d.nw}}}
  return R}
-const tot=l=>{const t={n:0,cp:0,rec:0,o1:0,o2:0,c1:0,c2:0,nt:0};
- for(const s of l){const e=E[s];if(!e)continue;for(const k of['n','cp','rec','o1','o2','c1','c2'])t[k]+=e[k];if(e.night)t.nt++}return t};
+const tot=l=>{const t={n:0,cp:0,rec:0,o1:0,o2:0,c1:0,c2:0,nt:0,nn:0};
+ for(const s of l){const e=E[s];if(!e)continue;for(const k of['n','cp','rec','o1','o2','c1'])t[k]+=e[k];if(e.night)t.nt++;if(e.nw)t.nn++}return t};
 function net(t){const f1=1+S.set.r1/100,f2=1+S.set.r2/100;let r=t.rec;
  const d2=Math.min(t.o2,r/f2);r-=d2*f2;const d1=Math.min(t.o1,r/f1);r-=d1*f1;
  return{o1:t.o1-d1,o2:t.o2-d2,ex:Math.max(0,r)}}
 const rw=(a,b)=>`<div class="r"><span>${a}</span><b>${b}</b></div>`;
-function sum(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,q=net(t),pn=t.n+t.cp+t.rec;
- let h=rw('Heures normales',hm(t.n)+(base?' / '+hm(base):''));
+function sumC(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,q=net(t),pn=t.n+t.cp+t.rec;
+ let h=base?rw('Heures normales',hm(t.n)+' / '+hm(base)):'';
  if(t.cp)h+=rw('Congés payés',hm(t.cp));
  h+=rw('Heures sup à '+a+' %',hm(t.o1))+rw('Heures sup à '+b+' %',hm(t.o2));
  if(t.rec){h+=rw('Récupérations prises',hm(t.rec))+rw('Heures sup restantes à '+a+' %',hm(q.o1))+rw('Heures sup restantes à '+b+' %',hm(q.o2));
   if(q.ex>0)h+=rw('Récup non couverte par les heures sup',hm(q.ex))}
- h+=rw('Heures de camion à '+a+' %',hm(t.c1))+rw('Heures de camion à '+b+' %',hm(t.c2))+rw('Nuits en découcher',t.nt)+rw('Prime de nuit',eur(t.nt*c.bonus));
- if(c.rate>0){const e1=pn/60*c.rate,e2=((q.o1+t.c1)*(1+c.r1/100)+(q.o2+t.c2)*(1+c.r2/100))/60*c.rate;
-  h+=rw('Estimation heures normales',eur(e1))+rw('Estimation sup + camion',eur(e2))+rw('Total estimé (brut)',eur(e1+e2+t.nt*c.bonus))}
- return h}
+ h+=rw('Heures de camion à '+a+' %',hm(t.c1));
+ const pd=t.nt*c.bonus,pnu=t.nn*c.nuit;let e='';
+ if(c.rate>0){const e1=pn/60*c.rate,e2=((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate;
+  e+=rw('Heures normales',eur(e1))+rw('Heures sup et camion',eur(e2))}
+ e+=rw('Prime de découchage',eur(pd))+rw('Prime de nuit',eur(pnu));
+ if(c.rate>0)e+=rw('Total estimé (brut)',eur(pn/60*c.rate+((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate+pd+pnu));
+ return `<div class="card">${h}</div><h2>En euros (estimation)</h2><div class="card">${e}</div>`}
 
 /* ---------- Actions ---------- */
 const ens=()=>S.days[V.date]||(S.days[V.date]=cl(A[V.date])),done=()=>{save();render()};
-const go=s=>{V.date=s;V.tab='p';render()};
-function mk(t){const d={type:t,t:{},x:[],meal:S.set.mealStd,red:false,night:false,ng:0,nb:0};S.days[V.date]=d;if(t=='normal'||t=='ecole')tpl(d,V.date);done()}
+const go=s=>{V.date=s;V.cm=s.slice(0,7);V.tab='p';render()};
+function cmv(k){const d=P(V.cm+'-01');d.setMonth(d.getMonth()+k);V.cm=iso(d).slice(0,7);render()}
+function mk(t){const d={type:t,t:{},x:[],meal:S.set.mealStd,red:false,night:false,nw:false,ng:0,nb:0,rh:0};S.days[V.date]=d;if(t=='normal'||t=='ecole')tpl(d,V.date);done()}
 function ty(t){const d=ens();d.type=t;if(t=='chantier')OI.forEach(k=>delete d.t[k]);else{CI.forEach(k=>delete d.t[k]);d.ng=d.nb=0}
  if(t=='normal'||t=='ecole')tpl(d,V.date);if(t=='ecole')d.x=[];done()}
-function pu(k){ens().t[k]=new Date().toTimeString().slice(0,5);done()}
 function setT(k,v){const d=ens();v?d.t[k]=v:delete d.t[k];done()}
 function up(k,v){ens()[k]=v;done()}
+function pr(k,on){const d=ens();d.night=false;d.nw=false;if(on)d[k]=true;done()}
 function fl(k,v){const d=ens();d[k]=v;if(v)delete d.t[k=='ng'?'dep':'ret'];done()}
 function rd(on){const d=ens();d.red=on;d.meal=on?S.set.mealRed:S.set.mealStd;done()}
+function rc(on){const d=ens();if(on){d.rh=ref(V.date);if(d.type=='normal')OI.forEach(k=>delete d.t[k])}else{d.rh=0;if(d.type=='normal'&&!OI.some(k=>d.t[k]))tpl(d,V.date)}done()}
 function ax(){const d=ens(),l=(d.x||[]).slice(-1)[0];(d.x=d.x||[]).push({s:(l&&l.e)||d.t.ret||d.t.e||'',e:''});done()}
 function rx(i){ens().x.splice(i,1);done()}
 function sx(i,k,v){ens().x[i][k]=v;done()}
 function rf(){tpl(ens(),V.date);done()}
 function clr(){const d=ens();OI.forEach(k=>delete d.t[k]);done()}
 function del(){if(confirm(elig(V.date)?'Rétablir la journée normale par défaut ?':'Supprimer cette journée ?')){delete S.days[V.date];done()}}
-function cfg(k,v){S.set[k]=typeof v=='boolean'?v:(+String(v).replace(',','.')||0);done()}
+function cfg(k,v){S.set[k]=(+String(v).replace(',','.')||0);done()}
+function set2(k,v){S.set[k]=v;done()}
 function tc(k,i,f,v){S.set[k][i][f]=v;done()}
+function rst(){if(confirm('Effacer toutes les saisies (les journées atelier par défaut reviendront) ?')){S.days={};done()}}
 function maj(){const r=navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([]);r.then(x=>Promise.all(x.map(y=>y.unregister()))).then(()=>window.caches?caches.keys():[]).then(k=>Promise.all(k.map(y=>caches.delete(y)))).then(()=>location.reload())}
-function rst(){if(confirm('Effacer toutes les saisies (les journées normales par défaut reviendront) ?')){S.days={};done()}}
 function csv(){const f=x=>(x/60).toFixed(2).replace('.',','),a=100+S.set.r1,b=100+S.set.r2;
- const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion '+a+'%;Camion '+b+'%;Nuit'];
- Object.keys(A).sort().forEach(s=>{const e=E[s];L.push([s,TYn[A[s].type],f(e.n),f(e.cp),f(e.rec),f(e.o1),f(e.o2),f(e.c1),f(e.c2),e.night?1:0].join(';'))});
+ const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion '+a+'%;Découchage;Nuit'];
+ Object.keys(A).sort().forEach(s=>{const e=E[s];L.push([s,TYn[A[s].type],f(e.n),f(e.cp),f(e.rec),f(e.o1),f(e.o2),f(e.c1),e.night?1:0,e.nw?1:0].join(';'))});
  const u=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'})),k=document.createElement('a');k.href=u;k.download='heures.csv';k.click()}
+function pdf(){const J=window.jspdf&&window.jspdf.jsPDF;if(!J){alert('Le module PDF n’est pas chargé : ouvre l’app avec du réseau, puis réessaie.');return}
+ const mo=V.cm,ks=Object.keys(A).filter(s=>s.startsWith(mo)).sort(),t=tot(ks),c=S.set,q=net(t),doc=new J(),X=v=>v.toFixed(2).replace('.',',')+' EUR',a=100+c.r1,b=100+c.r2;
+ let y=18;const pg=()=>{if(y>textMax){doc.addPage();y=18}},textMax=280;
+ const row=(r,cols)=>{pg();r.forEach((v,i)=>doc.text(String(v),cols[i],y));y+=6};
+ doc.setFontSize(16);doc.text('Suivi des heures - '+fm(mo),14,y);y+=10;doc.setFontSize(10);
+ const C=[14,58,92,118,144,168];doc.setFont('helvetica','bold');row(['Date','Type','Normales','Sup','Camion','Primes'],C);doc.setFont('helvetica','normal');
+ ks.forEach(s=>{const e=E[s],d=A[s];row([fds(s),TYn[d.type]+(d.rh?' + recup':''),hm(e.n+e.cp),hm(e.o1+e.o2),hm(e.c1),(e.night?'Decouch. ':'')+(e.nw?'Nuit':'')],C)});
+ y+=6;doc.setFont('helvetica','bold');row(['Recapitulatif'],[14]);doc.setFont('helvetica','normal');
+ const R=[['Heures sup a '+a+' %',hm(t.o1)],['Heures sup a '+b+' %',hm(t.o2)]];
+ if(t.rec)R.push(['Recuperations prises',hm(t.rec)],['Sup restantes a '+a+' %',hm(q.o1)],['Sup restantes a '+b+' %',hm(q.o2)]);
+ R.push(['Heures de camion a '+a+' %',hm(t.c1)],['Prime de decouchage',X(t.nt*c.bonus)],['Prime de nuit',X(t.nn*c.nuit)]);
+ if(c.rate>0){const e2=((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate,e1=(t.n+t.cp+t.rec)/60*c.rate;R.push(['Heures normales (estim.)',X(e1)],['Sup et camion (estim.)',X(e2)],['Total estime (brut)',X(e1+e2+t.nt*c.bonus+t.nn*c.nuit)])}
+ R.forEach(r=>row(r,[14,100]));
+ const f=new File([doc.output('blob')],'heures-'+mo+'.pdf',{type:'application/pdf'});
+ if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f]}).catch(()=>{});else doc.save(f.name)}
 
 /* ---------- Vues ---------- */
+const lab=(d,e)=>d&&e?(({chantier:'Ch',ecole:'Éc',cp:'CP'})[d.type]||'')+(d.rh?' R':'')+(e.o1+e.o2>0?' +':''):'';
+function calv(){const cm=V.cm,off=wd(cm+'-01'),[y,mo]=cm.split('-').map(Number),n=new Date(y,mo,0).getDate();
+ let h=`<div class="card"><div class="ch"><button onclick="cmv(-1)">‹</button><b>${fm(cm)}</b><button onclick="cmv(1)">›</button></div><div class="cal">`+['L','M','M','J','V','S','D'].map(x=>`<i>${x}</i>`).join('');
+ for(let i=0;i<off;i++)h+='<span></span>';
+ for(let i=1;i<=n;i++){const s=cm+'-'+p(i);h+=`<button class="${s==V.date?'sel':''}${s==TD()?' td':''}${wd(s)>4?' we':''}" onclick="go('${s}')">${i}<small>${lab(A[s],E[s])}</small></button>`}
+ return h+'</div></div>'}
 function pv(){const d=A[V.date];
- let h=`<div class="card"><div class="r"><input type="date" value="${V.date}" onchange="V.date=this.value||TD();render()"><button class="lk" onclick="V.date=TD();render()">Aujourd’hui</button></div></div>`;
+ let h=calv();
  if(!d)h+=`<h2>${fd(V.date)} : choisis le type de journée</h2>`+Object.entries(TYn).map(([k,n])=>`<button class="big" onclick="mk('${k}')">${n}</button>`).join('');
- else{const c=d.type=='chantier',lv=d.type=='cp'||d.type=='rec',e=E[V.date],L=c?LB.c:LB.o,hid=k=>(k=='dep'&&d.ng)||(k=='ret'&&d.nb);
-  h+=`<div class="seg">${Object.entries(TYn).map(([k,n])=>`<button class="${d.type==k?'on':''}" onclick="ty('${k}')">${n}</button>`).join('')}</div>`;
-  if(lv)h+=`<h2>${d.type=='cp'?'Congé payé':'Récupération'}</h2><div class="card"><div class="r"><span>Durée</span><span><input type="number" inputmode="decimal" step="0.25" value="${(d.h??ref(V.date))/60}" onchange="up('h',Math.max(0,Math.round((+String(this.value).replace(',','.')||0)*60)))"> h</span></div>
-   <div class="r"><small>${d.type=='cp'?'Compté comme heures normales payées.':'Payée comme du temps normal. Elle est prise d’abord sur les heures sup à '+(100+S.set.r2)+' % (1 h compte pour 1h30 de repos), puis sur celles à '+(100+S.set.r1)+' % (1 h compte pour 1h15). Pas sur le camion.'} Par défaut : la durée de la journée.</small></div></div>`;
+ else{const c=d.type=='chantier',lv=d.type=='cp',e=E[V.date],L=c?LB.c:LB.o,hid=k=>(k=='dep'&&d.ng)||(k=='ret'&&d.nb);
+  h+=`<h2>${fd(V.date)}</h2><div class="seg">${Object.entries(TYn).map(([k,n])=>`<button class="${d.type==k?'on':''}" onclick="ty('${k}')">${n}</button>`).join('')}</div>`;
+  if(lv)h+=`<div class="card"><div class="r"><span>Durée du congé</span><span><input type="number" inputmode="decimal" step="0.25" value="${(d.h??ref(V.date))/60}" onchange="up('h',Math.max(0,Math.round((+String(this.value).replace(',','.')||0)*60)))"> h</span></div></div>`;
   else{
-   h+=`<h2>Pointage rapide (heure actuelle)</h2><div class="card g">${L.filter(([k])=>!hid(k)).map(([k,n])=>`<button class="pb" onclick="pu('${k}')">${n}<b>${d.t[k]||'—'}</b></button>`).join('')}</div>`;
-   h+=`<h2>Horaires</h2><div class="card">`+L.map(([k,n])=>hid(k)?'':`<div class="r"><span>${n}</span><span><input type="time" value="${d.t[k]||''}" onchange="setT('${k}',this.value)">${k=='dep'?`<button class="lk rd" title="Pas de trajet aller" onclick="fl('ng',1)"> −</button>`:k=='ret'?`<button class="lk rd" title="Pas de trajet retour" onclick="fl('nb',1)"> −</button>`:''}</span></div>`).join('');
-   if(c&&d.ng)h+=`<div class="r"><button class="lk" onclick="fl('ng',0)">+ Rétablir le trajet aller</button></div>`;
-   if(c&&d.nb)h+=`<div class="r"><button class="lk" onclick="fl('nb',0)">+ Rétablir le trajet retour</button></div>`;
+   h+=`<div class="card">`+L.map(([k,n])=>hid(k)?'':`<div class="r"><span class="lb">${k=='dep'?`<button class="mb" onclick="fl('ng',1)">−</button>`:k=='ret'?`<button class="mb" onclick="fl('nb',1)">−</button>`:'<span class="sp"></span>'}${n}</span>${qs(d.t[k]||'',`setT('${k}',this.value)`)}</div>`).join('');
+   if(c&&d.ng)h+=`<div class="r"><span class="lb"><button class="mb pl" onclick="fl('ng',0)">+</button>Rétablir le trajet aller</span></div>`;
+   if(c&&d.nb)h+=`<div class="r"><span class="lb"><button class="mb pl" onclick="fl('nb',0)">+</button>Rétablir le trajet retour</span></div>`;
+   if(d.type!='ecole')h+=`<div class="cap">Heures sup en plus (débriefing, déchargement…)</div>`+(d.x||[]).map((q,i)=>`<div class="r"><span class="lb"><button class="mb" onclick="rx(${i})">−</button>Sup ${i+1}</span><span>${qs(q.s||'',`sx(${i},'s',this.value)`)} ${qs(q.e||'',`sx(${i},'e',this.value)`)}</span></div>`).join('')+`<div class="r"><span class="lb"><button class="mb pl" onclick="ax()">+</button>Ajouter une ligne</span></div>`;
    if(!c)h+=`<div class="r"><button class="lk" onclick="rf()">${d.type=='ecole'?'Horaires école':'Horaires de référence'}</button><button class="lk rd" onclick="clr()">Effacer</button></div>`;
-   h+='</div>';
-   if(d.type!='ecole')h+=`<h2>Heures sup en plus (débriefing, déchargement…)</h2><div class="card">`+(d.x||[]).map((q,i)=>`<div class="r"><span>De <input type="time" value="${q.s||''}" onchange="sx(${i},'s',this.value)"> à <input type="time" value="${q.e||''}" onchange="sx(${i},'e',this.value)"></span><button class="lk rd" onclick="rx(${i})">−</button></div>`).join('')+`<div class="r"><button class="lk" onclick="ax()">+ Ajouter une ligne</button></div></div>`;
-   if(c)h+=`<h2>Repas et nuit</h2><div class="card"><label class="r"><span>Temps de repas réduit</span><input type="checkbox" ${d.red?'checked':''} onchange="rd(this.checked)"></label>
+   h+='</div><h2>Options de la journée</h2><div class="card">';
+   if(c)h+=`<label class="r"><span>Temps de repas réduit</span><input type="checkbox" ${d.red?'checked':''} onchange="rd(this.checked)"></label>
     <div class="r"><span>Pause repas</span><span><input type="number" inputmode="numeric" value="${d.meal}" onchange="up('meal',Math.max(0,+this.value||0))"> min</span></div>
-    <label class="r"><span>Nuit sur place (découcher)</span><input type="checkbox" ${d.night?'checked':''} onchange="up('night',this.checked)"></label></div>`}
-  h+=`<h2>Récapitulatif du jour</h2><div class="card">`+(lv?rw(d.type=='cp'?'Congé payé':'Récupération',hm(e.cp+e.rec)):rw('Heures normales',hm(e.n))+rw('Heures supplémentaires',hm(e.o1+e.o2))+(e.o2?rw('dont à '+(100+S.set.r2)+' %',hm(e.o2)):'')
-   +(c?rw('Heures de camion',hm(e.c1+e.c2))+(d.night?rw('Découcher',eur(S.set.bonus)):'')+((!d.t.arr||!d.t.lea)?'<div class="r"><small>Renseigne l’arrivée et le départ du chantier pour calculer les heures.</small></div>':''):''))+'</div>';
-  if(S.days[V.date])h+=`<div class="card"><div class="r"><button class="lk rd" onclick="del()">${elig(V.date)?'Rétablir la journée normale par défaut':'Supprimer cette journée'}</button></div></div>`}
- const mo=V.date.slice(0,7);
- return h+`<h2>Récapitulatif · ${fm(mo)}</h2><div class="card">${sum(tot(Object.keys(A).filter(s=>s.startsWith(mo))))}</div>`}
+    <label class="r"><span>Nuit sur place</span><input type="checkbox" ${d.night?'checked':''} onchange="pr('night',this.checked)"></label>
+    <label class="r"><span>Chantier de nuit</span><input type="checkbox" ${d.nw?'checked':''} onchange="pr('nw',this.checked)"></label>`;
+   h+=`<label class="r"><span>Récupération</span><input type="checkbox" ${d.rh>0?'checked':''} onchange="rc(this.checked)"></label>`;
+   if(d.rh>0)h+=`<div class="r"><span>Durée de la récup</span><span><input type="number" inputmode="decimal" step="0.25" value="${d.rh/60}" onchange="up('rh',Math.max(0,Math.round((+String(this.value).replace(',','.')||0)*60)))"> h</span></div>`;
+   h+='</div>'}
+  h+=`<h2>Récapitulatif du jour</h2><div class="card">`+(lv?rw('Congé payé',hm(e.cp)):rw('Heures supplémentaires',hm(e.o1+e.o2))+(e.o2?rw('dont à '+(100+S.set.r2)+' %',hm(e.o2)):'')
+   +(e.rec?rw('Récupération',hm(e.rec)):'')+(c?rw('Heures de camion',hm(e.c1))+(d.night?rw('Prime de découchage',eur(S.set.bonus)):'')+(d.nw?rw('Prime de nuit',eur(S.set.nuit)):'')+((!d.t.arr||!d.t.lea)?'<div class="r"><small>Renseigne l’arrivée et le départ du chantier pour calculer les heures.</small></div>':''):''))+'</div>';
+  if(S.days[V.date])h+=`<div class="card"><div class="r"><button class="lk rd" onclick="del()">${elig(V.date)?'Rétablir la journée atelier par défaut':'Supprimer cette journée'}</button></div></div>`}
+ const mo=V.cm;
+ return h+`<h2>Récapitulatif · ${fm(mo)}</h2>${sumC(tot(Object.keys(A).filter(s=>s.startsWith(mo))))}`}
 
 function hv(){const ks=Object.keys(A);
  let h=`<div class="seg">${[['m','Mois'],['s','Semaines'],['j','Jours']].map(([k,n])=>`<button class="${V.h==k?'on':''}" onclick="V.h='${k}';render()">${n}</button>`).join('')}</div>`;
  if(!ks.length)return h+'<p class="mu">Aucune journée enregistrée.</p>';
  if(V.h=='m'){for(const mo of [...new Set(ks.map(s=>s.slice(0,7)))].sort().reverse())
-   h+=`<h2>${fm(mo)}</h2><div class="card">${sum(tot(ks.filter(s=>s.startsWith(mo))))}</div>`;return h}
+   h+=`<h2>${fm(mo)}</h2>${sumC(tot(ks.filter(s=>s.startsWith(mo))))}`;return h}
  for(const w of [...new Set(ks.map(ws))].sort().reverse()){const l=ks.filter(s=>ws(s)==w).sort().reverse();
-  h+=`<h2>${wt(w)}</h2><div class="card">`;
-  h+=V.h=='s'?sum(tot(l),baseMin()):l.map(s=>{const e=E[s],d=A[s],o=e.o1+e.o2,c=e.c1+e.c2;
-   return `<div class="r tap" onclick="go('${s}')"><span>${fd(s)}<br><small>${TYn[d.type]}</small></span><span style="text-align:right">${hm(e.n+e.cp+e.rec)}${e.night?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('');
-  h+='</div>'}
+  h+=`<h2>${wt(w)}</h2>`;
+  h+=V.h=='s'?sumC(tot(l),baseMin()):'<div class="card">'+l.map(s=>{const e=E[s],d=A[s],o=e.o1+e.o2,c=e.c1;
+   return `<div class="r tap" onclick="go('${s}')"><span>${fds(s)}<br><small>${TYn[d.type]}${d.rh?' + récup':''}</small></span><span style="text-align:right">${hm(e.n+e.cp)}${e.night?' 🛏':''}${e.nw?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('')+'</div>'}
  return h}
 
 function tpb(k,t){let h=`<h2>${t} · ${hm(baseMin(k))} par semaine</h2><div class="card">`;
  JN.forEach((j,i)=>{const o=S.set[k][i];h+=`<div class="tp"><label><input type="checkbox" ${o.w?'checked':''} onchange="tc('${k}',${i},'w',this.checked)"> <b>${j}</b></label>`
-  +(o.w?OI.map((f,x)=>`<input type="time" title="${LB.o[x][1]}" value="${o[f]||''}" onchange="tc('${k}',${i},'${f}',this.value)">`).join(''):'')+'</div>'});
+  +(o.w?OI.map((f,x)=>`${qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1])}`).join(''):'')+'</div>'});
  return h+'</div>'}
 function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><input type="number" inputmode="decimal" step="any" value="${c[k]}" onchange="cfg('${k}',this.value)"> ${u}</span></div>`;
- return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de nuit (par nuit)','€')}</div>
- <h2>Majorations hebdomadaires</h2><div class="card">${n('thr','Seuil d’heures sup','h / sem.')}${n('r1','Majoration de base','%')}${n('r2','Majoration au-delà du seuil','%')}
- <label class="r"><span>Camion compté dans le seuil</span><input type="checkbox" ${c.truckIn?'checked':''} onchange="cfg('truckIn',this.checked)"></label></div>
- <h2>Repas sur chantier</h2><div class="card">${n('mealStd','Repas standard','min')}${n('mealRed','Repas réduit','min')}</div>
- <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées normales dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
- ${tpb('tpl','Horaires normaux')}${tpb('tplE','Horaires école')}
+ return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
+ <h2>Apparence</h2><div class="card"><div class="cap">Couleur de l’application</div><div class="sw">${PAL.map(([nm,x])=>`<button class="${c.acc==x?'on':''}" style="background:${x}" title="${nm}" onclick="set2('acc','${x}')"></button>`).join('')}</div>
+ <div class="seg" style="margin:0 0 12px">${[['auto','Auto'],['light','Clair'],['dark','Sombre']].map(([k,nm])=>`<button class="${c.theme==k?'on':''}" onclick="set2('theme','${k}')">${nm}</button>`).join('')}</div></div>
+ <h2>Majorations hebdomadaires</h2><div class="card">${rw('Seuil d’heures sup',c.thr+' h par semaine')}${rw('Majoration de base','+'+c.r1+' %')}${rw('Au-delà du seuil','+'+c.r2+' %')}</div>
+ <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
+ ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 3</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 5</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
-function render(){A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
+function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
+ r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
+ if(S.set.theme&&S.set.theme!='auto')r.dataset.theme=S.set.theme;else delete r.dataset.theme;
+ const mt=$('meta[name=theme-color]');if(mt)mt.content=c}
+function render(){ap();A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==V.tab))}
 /* migration */
-(function(){if(S.v!=2){S.v=2;if(!S.set.bonus)S.set.bonus=10;for(const s in S.days){const d=S.days[s];d.x=d.x||[];if(d.type=='ecole'&&!OI.some(k=>d.t[k]))tpl(d,s)}}
+(function(){if(S.v!=4){S.v=4;if(!S.set.bonus)S.set.bonus=10;
+  for(const s in S.days){const d=S.days[s];d.x=d.x||[];delete d.note;
+   if(d.type=='rec'){d.rh=d.h??ref(s);d.type='normal';d.t={};delete d.h}
+   if(d.type=='ecole'&&!OI.some(k=>d.t[k]))tpl(d,s)}}
  if(!S.since){const ks=Object.keys(S.days).sort(),f=TD().slice(0,8)+'01';S.since=ks.length&&ks[0]<f?ks[0].slice(0,8)+'01':f}
  save()})();
 render();
