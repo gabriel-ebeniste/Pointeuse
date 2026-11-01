@@ -57,11 +57,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
 #ws .sh{position:absolute;left:0;right:0;bottom:0;background:var(--c);border-radius:18px 18px 0 0;padding:6px 16px calc(14px + env(safe-area-inset-bottom))}
 #ws .sb{display:flex;justify-content:space-between;align-items:center;padding:8px 4px}
 #ws .sb button{font-size:17px;padding:6px 4px}
-.wl{position:relative;display:flex;height:200px;max-width:300px;margin:0 auto}
-.wl .hl{position:absolute;left:0;right:0;top:80px;height:40px;background:var(--bg);border-radius:10px;pointer-events:none}
-.wl .col{position:relative;flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;padding:80px 0;scrollbar-width:none;text-align:center;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent)}
+.wl{position:relative;display:flex;height:204px;max-width:300px;margin:0 auto}
+.wl .hl{position:absolute;left:0;right:0;top:85px;height:34px;background:var(--bg);border-radius:10px;pointer-events:none}
+.wl .col{position:relative;flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;padding:85px 0;scrollbar-width:none;text-align:center;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent)}
 .wl .col::-webkit-scrollbar{display:none}
-.wl .col div{height:40px;line-height:40px;scroll-snap-align:center;font-size:22px;font-variant-numeric:tabular-nums}
+.wl .col div{height:34px;line-height:34px;scroll-snap-align:center;font-size:21px;font-variant-numeric:tabular-nums}
 .tb{border:0;background:var(--bg);color:var(--t);font:inherit;border-radius:8px;padding:8px 12px;min-width:78px;text-align:center;font-variant-numeric:tabular-nums}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);border-top:1px solid var(--l);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
@@ -157,13 +157,13 @@ function sumC(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,q=net(t),pn=t.n+t.cp+t
  return `<div class="card">${h}</div><h2>En euros (estimation)</h2><div class="card">${e}</div>`}
 
 /* ---------- Roue d'heure ---------- */
-let W={on:''};
+let W={on:''};const IH=34;
 (function(){$('#wH').innerHTML=Array.from({length:24},(_,i)=>`<div>${i} h</div>`).join('');$('#wM').innerHTML=[0,15,30,45].map(x=>`<div>${p(x)} min</div>`).join('')})();
-function wh(b){W.on=b.dataset.on;const v=b.dataset.v||b.dataset.df||'08:00',s=()=>{$('#wH').scrollTop=+v.slice(0,2)*40;$('#wM').scrollTop=Math.round(+v.slice(3)/15)*40};
+function wh(b){W.on=b.dataset.on;const v=b.dataset.v||b.dataset.df||'08:00',s=()=>{$('#wH').scrollTop=+v.slice(0,2)*IH;$('#wM').scrollTop=Math.round(+v.slice(3)/15)*IH};
  $('#ws').style.display='block';document.body.style.overflow='hidden';s();requestAnimationFrame(s)}
 function wc(){$('#ws').style.display='none';document.body.style.overflow=''}
 function wset(v){wc();new Function(W.on).call({value:v})}
-function wok(){const c=(id,mx)=>Math.min(mx,Math.max(0,Math.round($(id).scrollTop/40)));wset(p(c('#wH',23))+':'+p(c('#wM',3)*15))}
+function wok(){const c=(id,mx)=>Math.min(mx,Math.max(0,Math.round($(id).scrollTop/IH)));wset(p(c('#wH',23))+':'+p(c('#wM',3)*15))}
 
 /* ---------- Actions ---------- */
 const ens=()=>S.days[V.date]||(S.days[V.date]=cl(A[V.date])),done=()=>{save();render()};
@@ -265,7 +265,7 @@ function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><i
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 6</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 7</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
