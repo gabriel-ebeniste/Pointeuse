@@ -91,7 +91,7 @@ const DEF={bonus:10,nuit:100,rate:0,thr:8,r1:25,r2:50,mealStd:60,mealRed:30,acc:
  tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)],
  tplE:[T('09:00','12:00','13:45','17:45'),E8(),E8(),E8(),T('08:00','','','12:00'),T('08:00','','','12:00',0),T('08:00','','','12:00',0)]};
 /* ===== À REMPLIR avec les valeurs de ton projet Firebase (voir le guide) ===== */
-const FB={apiKey:'',authDomain:'',projectId:'',appId:''};
+const FB={apiKey:'AIzaSyCDu5iCRJ0smB8f43e2e8R7K2om0p7C3kI',authDomain:'suivi-heures-estampille.firebaseapp.com',projectId:'suivi-heures-estampille',appId:'1:975619476031:web:6c63829c711007c66cc68a'};
 const FBC=!!FB.apiKey;let U=FBC?undefined:null,auth,db;
 if(FBC&&window.firebase){firebase.initializeApp(FB);auth=firebase.auth();auth.languageCode='fr';db=firebase.firestore()}
 let S,A={},E={};
