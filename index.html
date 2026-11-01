@@ -63,10 +63,15 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
 .wl .col::-webkit-scrollbar{display:none}
 .wl .col div{height:34px;line-height:34px;scroll-snap-align:center;font-size:21px;font-variant-numeric:tabular-nums}
 .tb{border:0;background:var(--bg);color:var(--t);font:inherit;border-radius:8px;padding:8px 12px;min-width:78px;text-align:center;font-variant-numeric:tabular-nums}
+.f input{display:block;width:100%;margin:8px 0;padding:13px 12px;font-size:16px}
+.er{color:#d92d20;margin:8px 4px}.ok{color:#2f9e44;margin:8px 4px}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);border-top:1px solid var(--l);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
 nav .on{color:var(--a)}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 </head>
 <body>
@@ -85,9 +90,14 @@ const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00
 const DEF={bonus:10,nuit:100,rate:0,thr:8,r1:25,r2:50,mealStd:60,mealRed:30,acc:'#e8590c',theme:'auto',
  tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)],
  tplE:[T('09:00','12:00','13:45','17:45'),E8(),E8(),E8(),T('08:00','','','12:00'),T('08:00','','','12:00',0),T('08:00','','','12:00',0)]};
+/* ===== À REMPLIR avec les valeurs de ton projet Firebase (voir le guide) ===== */
+const FB={apiKey:'',authDomain:'',projectId:'',appId:''};
+const FBC=!!FB.apiKey;let U=FBC?undefined:null,auth,db;
+if(FBC&&window.firebase){firebase.initializeApp(FB);auth=firebase.auth();auth.languageCode='fr';db=firebase.firestore()}
 let S,A={},E={};
-try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v}}catch(e){S={days:{},set:cl(DEF),v:4}}
-const save=()=>{localStorage[K]=JSON.stringify(S)};
+try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v,uid:o.uid,ts:o.ts}}catch(e){S={days:{},set:cl(DEF),v:4}}
+const saveLocal=()=>{localStorage[K]=JSON.stringify(S)};
+const save=()=>{S.ts=Date.now();saveLocal();push()};
 const V={tab:'p',date:null,cm:null,h:'m'};
 const iso=d=>d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
 const TD=()=>iso(new Date());V.date=TD();V.cm=V.date.slice(0,7);
@@ -262,29 +272,83 @@ function tpb(k,t){let h=`<h2>${t} · ${hm(baseMin(k))} par semaine</h2><div clas
   +(o.w?OI.map((f,x)=>`${qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1],DFT[f])}`).join(''):'')+'</div>'});
  return h+'</div>'}
 function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><input type="number" inputmode="decimal" step="any" value="${c[k]}" onchange="cfg('${k}',this.value)"> ${u}</span></div>`;
- return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
+ return `${acc()}<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
  <h2>Apparence</h2><div class="card"><div class="cap">Couleur de l’application</div><div class="sw">${PAL.map(([nm,x])=>`<button class="${c.acc==x?'on':''}" style="background:${x}" title="${nm}" onclick="set2('acc','${x}')"></button>`).join('')}</div>
  <div class="seg" style="margin:0 0 12px">${[['auto','Auto'],['light','Clair'],['dark','Sombre']].map(([k,nm])=>`<button class="${c.theme==k?'on':''}" onclick="set2('theme','${k}')">${nm}</button>`).join('')}</div></div>
  <h2>Majorations hebdomadaires</h2><div class="card">${rw('Seuil d’heures sup',c.thr+' h par semaine')}${rw('Majoration de base','+'+c.r1+' %')}${rw('Au-delà du seuil','+'+c.r2+' %')}</div>
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 8</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 9</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
  if(S.set.theme&&S.set.theme!='auto')r.dataset.theme=S.set.theme;else delete r.dataset.theme;
  const mt=$('meta[name=theme-color]');if(mt)mt.content=c}
-function render(){ap();A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
+function render(){ap();const gate=FBC&&!U;$('nav').style.display=gate?'none':'flex';
+ if(gate){$('#app').innerHTML=!auth?'<p class="mu" style="padding:40px 10px;text-align:center">Impossible de charger le service de connexion. Vérifie ta connexion internet puis recharge la page.</p>':U===undefined?'<p class="mu" style="padding:60px 10px;text-align:center">Chargement…</p>':av();return}
+ A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==V.tab))}
 /* migration */
-(function(){if(S.v!=4){S.v=4;if(!S.set.bonus)S.set.bonus=10;
+function norm(){if(S.v!=4){S.v=4;if(!S.set.bonus)S.set.bonus=10;
   for(const s in S.days){const d=S.days[s];d.x=d.x||[];delete d.note;
    if(d.type=='rec'){d.rh=d.h??ref(s);d.type='normal';d.t={};delete d.h}
    if(d.type=='ecole'&&!OI.some(k=>d.t[k]))tpl(d,s)}}
- if(!S.since){const ks=Object.keys(S.days).sort(),f=TD().slice(0,8)+'01';S.since=ks.length&&ks[0]<f?ks[0].slice(0,8)+'01':f}
- save()})();
+ if(!S.since){const ks=Object.keys(S.days).sort(),f=TD().slice(0,8)+'01';S.since=ks.length&&ks[0]<f?ks[0].slice(0,8)+'01':f}}
+norm();saveLocal();
+
+/* ---------- Compte et synchronisation ---------- */
+const MRE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/,pwOk=w=>w.length>=8&&/[a-z]/.test(w)&&/[A-Z]/.test(w)&&/\d/.test(w);
+const fe=x=>({'auth/invalid-credential':'E-mail ou mot de passe incorrect.','auth/wrong-password':'E-mail ou mot de passe incorrect.','auth/user-not-found':'E-mail ou mot de passe incorrect.','auth/invalid-email':'Adresse e-mail invalide.','auth/email-already-in-use':'Un compte existe déjà avec cette adresse e-mail.','auth/weak-password':'Mot de passe trop faible.','auth/too-many-requests':'Trop de tentatives. Réessaie dans quelques minutes.','auth/network-request-failed':'Pas de connexion internet.'})[x&&x.code]||'Erreur : '+((x&&x.code)||x);
+const er=m=>{V.ae=m;V.ai='';render()};
+let UN=null,PT=0;
+function sy(t){V.sy=t;const e=$('#sy');if(e)e.textContent=t}
+function push(){clearTimeout(PT);PT=setTimeout(pushNow,1200)}
+function pushNow(){clearTimeout(PT);PT=0;if(!FBC||!U||S.uid!==U.uid)return Promise.resolve();
+ if(navigator.onLine===false){sy('Hors connexion : envoi dès le retour du réseau');return Promise.resolve()}
+ return db.doc('users/'+U.uid).set({data:JSON.stringify(S),ts:S.ts||Date.now()}).then(()=>sy('Synchronisé')).catch(()=>sy('En attente de connexion'))}
+function adopt(r){const o=JSON.parse(r.data);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v,uid:U.uid,ts:r.ts};norm();saveLocal()}
+async function link(u){const ref=db.doc('users/'+u.uid);
+ if(S.uid&&S.uid!==u.uid){S={days:{},set:cl(DEF),v:4};norm()}
+ let snap=null;try{snap=await ref.get()}catch(e){}
+ if(snap&&snap.exists){const r=snap.data(),o=JSON.parse(r.data);
+  if(!S.uid){S={days:{...S.days,...o.days},set:{...cl(DEF),...o.set},since:o.since||S.since,v:o.v,uid:u.uid,ts:Date.now()};norm();saveLocal();push()}
+  else if(r.ts>(S.ts||0))adopt(r);else if((S.ts||0)>r.ts)push()}
+ else if(snap){S.uid=u.uid;S.ts=Date.now();saveLocal();push()}
+ if(UN)UN();
+ UN=ref.onSnapshot(s=>{if(s.metadata.hasPendingWrites||!s.exists)return;const r=s.data();if(r.ts>(S.ts||0)){adopt(r);render()}},()=>{})}
+function av(){const m=V.am||'in',x=(V.em||'').replace(/"/g,'&quot;');
+ return `<div style="text-align:center;padding-top:28px"><img src="icon.png" width="76" height="76" style="border-radius:18px" alt=""><h1 style="font-size:24px;margin:10px 0 18px">Suivi Heures</h1></div>
+ <div class="seg"><button class="${m=='in'?'on':''}" onclick="V.am='in';V.ae='';V.ai='';render()">Se connecter</button><button class="${m=='up'?'on':''}" onclick="V.am='up';V.ae='';V.ai='';render()">Créer un compte</button></div>
+ <div class="card f"><input id="ae" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" placeholder="Adresse e-mail" value="${x}" oninput="V.em=this.value">
+ <input id="ap" type="password" autocomplete="${m=='in'?'current-password':'new-password'}" placeholder="Mot de passe">${m=='up'?`<input id="ap2" type="password" autocomplete="new-password" placeholder="Confirmer le mot de passe"><div class="cap">8 caractères minimum, avec au moins une minuscule, une majuscule et un chiffre.</div>`:''}</div>
+ ${V.ae?`<p class="er">${V.ae}</p>`:''}${V.ai?`<p class="ok">${V.ai}</p>`:''}
+ <button class="big" id="ab" onclick="${m=='in'?'login()':'signup()'}">${m=='in'?'Se connecter':'Créer mon compte'}</button>
+ ${m=='in'?`<div style="text-align:center"><button class="lk" onclick="forgot()">Mot de passe oublié ?</button></div>`:''}`}
+async function login(){const e=$('#ae').value.trim(),w=$('#ap').value;V.em=e;if(!MRE.test(e)||!w)return er('Saisis une adresse e-mail valide et ton mot de passe.');
+ $('#ab').disabled=true;try{await auth.signInWithEmailAndPassword(e,w)}catch(x){er(fe(x))}}
+async function signup(){const e=$('#ae').value.trim(),w=$('#ap').value,w2=$('#ap2').value;V.em=e;
+ if(!MRE.test(e))return er('Adresse e-mail invalide.');
+ if(!pwOk(w))return er('Le mot de passe doit contenir au moins 8 caractères, avec une minuscule, une majuscule et un chiffre.');
+ if(w!==w2)return er('Les deux mots de passe ne sont pas identiques.');
+ $('#ab').disabled=true;try{const c=await auth.createUserWithEmailAndPassword(e,w);c.user.sendEmailVerification().catch(()=>{})}catch(x){er(fe(x))}}
+async function forgot(){const e=$('#ae').value.trim();V.em=e;if(!MRE.test(e))return er('Saisis ton adresse e-mail ci-dessus, puis touche « Mot de passe oublié ? ».');
+ try{await auth.sendPasswordResetEmail(e)}catch(x){if(x.code=='auth/invalid-email'||x.code=='auth/network-request-failed')return er(fe(x))}
+ V.ae='';V.ai='Si un compte existe pour cette adresse, un e-mail pour choisir un nouveau mot de passe vient d’être envoyé. Pense à regarder dans les courriers indésirables.';render()}
+function acc(){return FBC&&U?`<h2>Compte</h2><div class="card"><div class="r"><span>Connecté</span><small>${U.email}</small></div>
+ <div class="r"><span>Synchronisation</span><small id="sy">${V.sy||'—'}</small></div>
+ <div class="r"><span>Adresse e-mail</span>${U.emailVerified?'<small>vérifiée</small>':'<button class="lk" onclick="verif()">à vérifier</button>'}</div>
+ <div class="r"><button class="lk" onclick="pwd()">Changer de mot de passe</button></div>
+ <div class="r"><button class="lk" onclick="logout()">Se déconnecter</button></div>
+ <div class="r"><button class="lk rd" onclick="delacc()">Supprimer mon compte et mes données</button></div></div>`:''}
+function verif(){U.sendEmailVerification().then(()=>alert('E-mail de vérification envoyé.')).catch(x=>alert(fe(x)))}
+function pwd(){auth.sendPasswordResetEmail(U.email).then(()=>alert('Un e-mail pour changer ton mot de passe vient d’être envoyé.')).catch(x=>alert(fe(x)))}
+async function logout(){if(!confirm('Se déconnecter ? Tes données restent dans ton compte.'))return;await pushNow();if(UN)UN();await auth.signOut();localStorage.removeItem(K);location.reload()}
+async function delacc(){if(!confirm('Supprimer définitivement ton compte et toutes tes heures ? Cette action est irréversible.'))return;
+ try{await db.doc('users/'+U.uid).delete();await U.delete();localStorage.removeItem(K);location.reload()}
+ catch(x){alert(x.code=='auth/requires-recent-login'?'Par sécurité, déconnecte-toi, reconnecte-toi, puis recommence.':fe(x))}}
 render();
+if(FBC&&auth)auth.onAuthStateChanged(u=>{U=u||null;if(u){link(u).catch(()=>{}).then(render)}else{if(UN){UN();UN=null}render()}});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 navigator.storage&&navigator.storage.persist&&navigator.storage.persist();
 </script>
