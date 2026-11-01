@@ -35,7 +35,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
 .lk{border:0;background:none;color:var(--a);font:inherit;padding:2px 0}
 .rd{color:#d92d20}
 .tp{padding:10px 0;border-bottom:1px solid var(--l);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tp label{width:100%}.tp select{flex:1;min-width:0;padding:7px 2px}
+.tp label{width:100%}.tp .tb{flex:1;min-width:0;padding:8px 2px}
 .big{display:block;width:100%;border:0;border-radius:12px;background:var(--a);color:#fff;padding:14px;font:600 16px inherit;margin:0 0 10px}
 .lb{display:flex;align-items:center;gap:10px}
 .sp{width:32px;flex:none}
@@ -52,6 +52,17 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
 .sw{display:flex;flex-wrap:wrap;gap:12px;padding:12px 0}
 .sw button{width:38px;height:38px;border-radius:50%;border:3px solid var(--c);box-shadow:0 0 0 1px var(--l)}
 .sw .on{box-shadow:0 0 0 3px var(--t)}
+#ws{position:fixed;inset:0;z-index:50;display:none}
+#ws .bd{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#ws .sh{position:absolute;left:0;right:0;bottom:0;background:var(--c);border-radius:18px 18px 0 0;padding:6px 16px calc(14px + env(safe-area-inset-bottom))}
+#ws .sb{display:flex;justify-content:space-between;align-items:center;padding:8px 4px}
+#ws .sb button{font-size:17px;padding:6px 4px}
+.wl{position:relative;display:flex;height:200px;max-width:300px;margin:0 auto}
+.wl .hl{position:absolute;left:0;right:0;top:80px;height:40px;background:var(--bg);border-radius:10px;pointer-events:none}
+.wl .col{position:relative;flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;padding:80px 0;scrollbar-width:none;text-align:center;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent)}
+.wl .col::-webkit-scrollbar{display:none}
+.wl .col div{height:40px;line-height:40px;scroll-snap-align:center;font-size:22px;font-variant-numeric:tabular-nums}
+.tb{border:0;background:var(--bg);color:var(--t);font:inherit;border-radius:8px;padding:8px 12px;min-width:78px;text-align:center;font-variant-numeric:tabular-nums}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);border-top:1px solid var(--l);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
 nav .on{color:var(--a)}
@@ -65,6 +76,9 @@ nav .on{color:var(--a)}
 <button data-t="h" onclick="V.tab='h';render()">Historique</button>
 <button data-t="s" onclick="V.tab='s';render()">Réglages</button>
 </nav>
+<div id="ws"><div class="bd" onclick="wc()"></div><div class="sh">
+<div class="sb"><button class="lk" onclick="wc()">Annuler</button><button class="lk rd" onclick="wset('')">Effacer l’heure</button><button class="lk" onclick="wok()"><b>OK</b></button></div>
+<div class="wl"><div class="hl"></div><div class="col" id="wH"></div><div class="col" id="wM"></div></div></div></div>
 <script>
 const K='suiviheures.v1',$=s=>document.querySelector(s),p=n=>String(n).padStart(2,'0'),cl=x=>JSON.parse(JSON.stringify(x));
 const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00'),FR=(w=1)=>T('08:15','','','12:15',w),E8=()=>T('08:00','12:00','13:45','17:45');
@@ -91,9 +105,9 @@ const hm=x=>{x=Math.max(0,Math.round(x));return Math.floor(x/60)+'h'+p(x%60)};
 const eur=v=>v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
 const TYn={normal:'Atelier',chantier:'Chantier',ecole:'École',cp:'Congé'},JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const LB={o:[['s','Arrivée'],['lo','Début pause'],['li','Fin pause'],['e','Départ']],c:[['dep','Départ atelier'],['arr','Arrivée chantier'],['lea','Départ chantier'],['ret','Arrivée atelier']]};
-const QS=[];for(let i=0;i<96;i++)QS.push(p(i>>2)+':'+p(i%4*15));
 const hl=v=>+v.slice(0,2)+'h'+v.slice(3);
-const qs=(v,on,ti)=>`<select ${ti?`title="${ti}" `:''}onchange="${on}"><option value="">—</option>`+(v&&!QS.includes(v)?`<option value="${v}" selected>${hl(v)}</option>`:'')+QS.map(q=>`<option value="${q}"${q==v?' selected':''}>${hl(q)}</option>`).join('')+'</select>';
+const qs=(v,on,ti,df)=>`<button class="tb" ${ti?`title="${ti}" `:''}data-v="${v}" data-df="${df||''}" data-on="${on}" onclick="wh(this)">${v?hl(v):'—'}</button>`;
+const DFT={s:'08:15',lo:'12:00',li:'13:00',e:'17:00',dep:'05:45',arr:'08:00',lea:'17:00',ret:'19:00'};
 const OI=['s','lo','li','e'],CI=['dep','arr','lea','ret'];
 const PAL=[['Orange','#e8590c'],['Bleu','#0a84ff'],['Vert','#2f9e44'],['Rouge','#e03131'],['Violet','#7048e8'],['Rose','#d6336c'],['Turquoise','#0c8599'],['Ambre','#d98200'],['Ardoise','#495057']];
 
@@ -141,6 +155,15 @@ function sumC(t,base){const c=S.set,a=100+c.r1,b=100+c.r2,q=net(t),pn=t.n+t.cp+t
  e+=rw('Prime de découchage',eur(pd))+rw('Prime de nuit',eur(pnu));
  if(c.rate>0)e+=rw('Total estimé (brut)',eur(pn/60*c.rate+((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate+pd+pnu));
  return `<div class="card">${h}</div><h2>En euros (estimation)</h2><div class="card">${e}</div>`}
+
+/* ---------- Roue d'heure ---------- */
+let W={on:''};
+(function(){$('#wH').innerHTML=Array.from({length:24},(_,i)=>`<div>${i} h</div>`).join('');$('#wM').innerHTML=[0,15,30,45].map(x=>`<div>${p(x)} min</div>`).join('')})();
+function wh(b){W.on=b.dataset.on;const v=b.dataset.v||b.dataset.df||'08:00',s=()=>{$('#wH').scrollTop=+v.slice(0,2)*40;$('#wM').scrollTop=Math.round(+v.slice(3)/15)*40};
+ $('#ws').style.display='block';document.body.style.overflow='hidden';s();requestAnimationFrame(s)}
+function wc(){$('#ws').style.display='none';document.body.style.overflow=''}
+function wset(v){wc();new Function(W.on).call({value:v})}
+function wok(){const c=(id,mx)=>Math.min(mx,Math.max(0,Math.round($(id).scrollTop/40)));wset(p(c('#wH',23))+':'+p(c('#wM',3)*15))}
 
 /* ---------- Actions ---------- */
 const ens=()=>S.days[V.date]||(S.days[V.date]=cl(A[V.date])),done=()=>{save();render()};
@@ -200,10 +223,10 @@ function pv(){const d=A[V.date];
   h+=`<h2>${fd(V.date)}</h2><div class="seg">${Object.entries(TYn).map(([k,n])=>`<button class="${d.type==k?'on':''}" onclick="ty('${k}')">${n}</button>`).join('')}</div>`;
   if(lv)h+=`<div class="card"><div class="r"><span>Durée du congé</span><span><input type="number" inputmode="decimal" step="0.25" value="${(d.h??ref(V.date))/60}" onchange="up('h',Math.max(0,Math.round((+String(this.value).replace(',','.')||0)*60)))"> h</span></div></div>`;
   else{
-   h+=`<div class="card">`+L.map(([k,n])=>hid(k)?'':`<div class="r"><span class="lb">${k=='dep'?`<button class="mb" onclick="fl('ng',1)">−</button>`:k=='ret'?`<button class="mb" onclick="fl('nb',1)">−</button>`:'<span class="sp"></span>'}${n}</span>${qs(d.t[k]||'',`setT('${k}',this.value)`)}</div>`).join('');
+   h+=`<div class="card">`+L.map(([k,n])=>hid(k)?'':`<div class="r"><span class="lb">${k=='dep'?`<button class="mb" onclick="fl('ng',1)">−</button>`:k=='ret'?`<button class="mb" onclick="fl('nb',1)">−</button>`:'<span class="sp"></span>'}${n}</span>${qs(d.t[k]||'',`setT('${k}',this.value)`,'',DFT[k])}</div>`).join('');
    if(c&&d.ng)h+=`<div class="r"><span class="lb"><button class="mb pl" onclick="fl('ng',0)">+</button>Rétablir le trajet aller</span></div>`;
    if(c&&d.nb)h+=`<div class="r"><span class="lb"><button class="mb pl" onclick="fl('nb',0)">+</button>Rétablir le trajet retour</span></div>`;
-   if(d.type!='ecole')h+=`<div class="cap">Heures sup en plus (débriefing, déchargement…)</div>`+(d.x||[]).map((q,i)=>`<div class="r"><span class="lb"><button class="mb" onclick="rx(${i})">−</button>Sup ${i+1}</span><span>${qs(q.s||'',`sx(${i},'s',this.value)`)} ${qs(q.e||'',`sx(${i},'e',this.value)`)}</span></div>`).join('')+`<div class="r"><span class="lb"><button class="mb pl" onclick="ax()">+</button>Ajouter une ligne</span></div>`;
+   if(d.type!='ecole')h+=`<div class="cap">Heures sup en plus (débriefing, déchargement…)</div>`+(d.x||[]).map((q,i)=>`<div class="r"><span class="lb"><button class="mb" onclick="rx(${i})">−</button>Sup ${i+1}</span><span>${qs(q.s||'',`sx(${i},'s',this.value)`,'','18:00')} ${qs(q.e||'',`sx(${i},'e',this.value)`,'',q.s||'19:00')}</span></div>`).join('')+`<div class="r"><span class="lb"><button class="mb pl" onclick="ax()">+</button>Ajouter une ligne</span></div>`;
    if(!c)h+=`<div class="r"><button class="lk" onclick="rf()">${d.type=='ecole'?'Horaires école':'Horaires de référence'}</button><button class="lk rd" onclick="clr()">Effacer</button></div>`;
    h+='</div><h2>Options de la journée</h2><div class="card">';
    if(c)h+=`<label class="r"><span>Temps de repas réduit</span><input type="checkbox" ${d.red?'checked':''} onchange="rd(this.checked)"></label>
@@ -232,7 +255,7 @@ function hv(){const ks=Object.keys(A);
 
 function tpb(k,t){let h=`<h2>${t} · ${hm(baseMin(k))} par semaine</h2><div class="card">`;
  JN.forEach((j,i)=>{const o=S.set[k][i];h+=`<div class="tp"><label><input type="checkbox" ${o.w?'checked':''} onchange="tc('${k}',${i},'w',this.checked)"> <b>${j}</b></label>`
-  +(o.w?OI.map((f,x)=>`${qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1])}`).join(''):'')+'</div>'});
+  +(o.w?OI.map((f,x)=>`${qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1],DFT[f])}`).join(''):'')+'</div>'});
  return h+'</div>'}
 function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><input type="number" inputmode="decimal" step="any" value="${c[k]}" onchange="cfg('${k}',this.value)"> ${u}</span></div>`;
  return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
@@ -242,7 +265,7 @@ function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><i
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 5</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 6</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
