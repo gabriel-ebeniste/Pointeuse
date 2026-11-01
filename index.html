@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Heures">
@@ -15,7 +15,7 @@
 :root{--bg:#f3f1ee;--c:#fff;--t:#1c1b1a;--s:#77716a;--a:#e8590c;--at:rgba(232,89,12,.18);--l:#e4e0db}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141312;--c:#211f1d;--t:#f4f1ed;--s:#a29b92;--l:#383431}}
 :root[data-theme=dark]{--bg:#141312;--c:#211f1d;--t:#f4f1ed;--s:#a29b92;--l:#383431}
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:pan-x pan-y}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font:16px/1.35 -apple-system,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--t);padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
 main{max-width:640px;margin:0 auto;padding:12px}
@@ -110,6 +110,10 @@ const qs=(v,on,ti,df)=>`<button class="tb" ${ti?`title="${ti}" `:''}data-v="${v}
 const DFT={s:'08:15',lo:'12:00',li:'13:00',e:'17:00',dep:'05:45',arr:'08:00',lea:'17:00',ret:'19:00'};
 const OI=['s','lo','li','e'],CI=['dep','arr','lea','ret'];
 const PAL=[['Orange','#e8590c'],['Bleu','#0a84ff'],['Vert','#2f9e44'],['Rouge','#e03131'],['Violet','#7048e8'],['Rose','#d6336c'],['Turquoise','#0c8599'],['Ambre','#d98200'],['Ardoise','#495057']];
+
+/* ---------- Pas de zoom ---------- */
+['gesturestart','gesturechange','gestureend'].forEach(g=>document.addEventListener(g,e=>e.preventDefault()));
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 
 /* ---------- Calculs ---------- */
 const span=(a,b)=>a==null||b==null?0:b>=a?b-a:b+1440-a;
@@ -265,7 +269,7 @@ function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><i
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 7</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 8</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
