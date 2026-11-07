@@ -65,6 +65,14 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
 .tb{border:0;background:var(--bg);color:var(--t);font:inherit;border-radius:8px;padding:8px 12px;min-width:78px;text-align:center;font-variant-numeric:tabular-nums}
 .f input{display:block;width:100%;margin:8px 0;padding:13px 12px;font-size:16px}
 .er{color:#d92d20;margin:8px 4px}.ok{color:#2f9e44;margin:8px 4px}
+.tg{width:24px;flex:none;text-align:center;font-size:24px;font-weight:600;line-height:1;color:var(--t)}
+#dlg{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:24px}
+#dlg .bd{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+#dlg .bx{position:relative;background:var(--c);border-radius:16px;padding:20px;max-width:360px;width:100%}
+#dlg p{margin:0 0 18px;line-height:1.4}
+#dlg .rw{display:flex;gap:10px}
+#dlg .bt{flex:1;border:0;border-radius:10px;padding:13px;font:600 16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--t)}
+#dlg .bt.dg{background:#d92d20;color:#fff}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);border-top:1px solid var(--l);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
 nav .on{color:var(--a)}
@@ -85,6 +93,7 @@ nav .on{color:var(--a)}
 <div id="ws"><div class="bd" onclick="wc()"></div><div class="sh">
 <div class="sb"><button class="lk" onclick="wc()">Annuler</button><button class="lk rd" onclick="wset('')">Effacer l’heure</button><button class="lk" onclick="wok()"><b>OK</b></button></div>
 <div class="wl"><div class="hl"></div><div class="col" id="wH"></div><div class="col" id="wM"></div></div></div></div>
+<div id="dlg"><div class="bd" onclick="dno()"></div><div class="bx"><p id="dm"></p><div class="rw"><button class="bt" onclick="dno()">Annuler</button><button class="bt dg" id="dok" onclick="dyes()">Confirmer</button></div></div></div>
 <script>
 const K='suiviheures.v1',$=s=>document.querySelector(s),p=n=>String(n).padStart(2,'0'),cl=x=>JSON.parse(JSON.stringify(x));
 const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00'),FR=(w=1)=>T('08:15','','','12:15',w),E8=()=>T('08:00','12:00','13:45','17:45');
@@ -183,6 +192,12 @@ function wc(){$('#ws').style.display='none';document.body.style.overflow=''}
 function wset(v){wc();new Function(W.on).call({value:v})}
 function wok(){const c=(id,mx)=>Math.min(mx,Math.max(0,Math.round($(id).scrollTop/IH)));wset(p(c('#wH',23))+':'+p(c('#wM',3)*15))}
 
+/* ---------- Confirmation ---------- */
+let DG=null;
+function ask(m,fn,lb){$('#dm').textContent=m;$('#dok').textContent=lb||'Confirmer';DG=fn;$('#dlg').style.display='flex'}
+function dno(){$('#dlg').style.display='none';DG=null}
+function dyes(){const f=DG;dno();if(f)f()}
+
 /* ---------- Actions ---------- */
 const ens=()=>S.days[V.date]||(S.days[V.date]=cl(A[V.date])),done=()=>{save();render()};
 const go=s=>{V.date=s;V.cm=s.slice(0,7);V.tab='p';render()};
@@ -201,11 +216,11 @@ function rx(i){ens().x.splice(i,1);done()}
 function sx(i,k,v){ens().x[i][k]=v;done()}
 function rf(){tpl(ens(),V.date);done()}
 function clr(){const d=ens();OI.forEach(k=>delete d.t[k]);done()}
-function del(){if(confirm(elig(V.date)?'Rétablir la journée normale par défaut ?':'Supprimer cette journée ?')){delete S.days[V.date];done()}}
+function del(){const r=elig(V.date);ask(r?'Rétablir la journée atelier par défaut ?':'Supprimer cette journée ?',()=>{delete S.days[V.date];done()},r?'Rétablir':'Supprimer')}
 function cfg(k,v){S.set[k]=(+String(v).replace(',','.')||0);done()}
 function set2(k,v){S.set[k]=v;done()}
 function tc(k,i,f,v){S.set[k][i][f]=v;done()}
-function rst(){if(confirm('Effacer toutes les saisies (les journées atelier par défaut reviendront) ?')){S.days={};done()}}
+function rst(){ask('Es-tu sûr de vouloir tout supprimer ? Toutes tes saisies seront effacées (les journées atelier par défaut reviendront). Cette action est irréversible.'+(FBC&&U?' Elles seront aussi supprimées de ton compte, sur tous tes appareils.':''),()=>{S.days={};done()},'Confirmer')}
 function maj(){const r=navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([]);r.then(x=>Promise.all(x.map(y=>y.unregister()))).then(()=>window.caches?caches.keys():[]).then(k=>Promise.all(k.map(y=>caches.delete(y)))).then(()=>location.reload())}
 function csv(){const mo=V.hm,f=x=>(x/60).toFixed(2).replace('.',','),a=100+S.set.r1,b=100+S.set.r2;
  const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion;Découchage;Nuit'];
@@ -307,19 +322,21 @@ function hv(){const mo=V.hm,ks=Object.keys(A).filter(s=>s.startsWith(mo)).sort()
    return `<div class="r tap" onclick="go('${s}')"><span>${fds(s)}<br><small>${TYn[d.type]}${d.rh?' + récup':''}</small></span><span style="text-align:right">${hm(e.n+e.cp)}${e.night?' 🛏':''}${e.nw?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('')+'</div>'}
  return h}
 
-function tpb(k,t){let h=`<h2>${t} · ${hm(baseMin(k))} par semaine</h2><div class="card">`;
- JN.forEach((j,i)=>{const o=S.set[k][i];h+=`<div class="tp"><label><input type="checkbox" ${o.w?'checked':''} onchange="tc('${k}',${i},'w',this.checked)"> <b>${j}</b></label>`
-  +(o.w?OI.map((f,x)=>`${qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1],DFT[f])}`).join(''):'')+'</div>'});
+function tpb(k,t){const op=V['o'+k];
+ let h=`<div class="card"><div class="r tap" onclick="V.o${k}=!V.o${k};render()"><span class="lb"><span class="tg">${op?'−':'+'}</span><b>${t}</b></span><small>${hm(baseMin(k))} par semaine</small></div>`;
+ if(op){JN.forEach((j,i)=>{const o=S.set[k][i];h+=`<div class="tp"><label><input type="checkbox" ${o.w?'checked':''} onchange="tc('${k}',${i},'w',this.checked)"> <b>${j}</b></label>`
+  +(o.w?OI.map((f,x)=>qs(o[f]||'',`tc('${k}',${i},'${f}',this.value)`,LB.o[x][1],DFT[f])).join(''):'')+'</div>'});
+  h+=`<div class="cap">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</div>`}
  return h+'</div>'}
 function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><input type="number" inputmode="decimal" step="any" value="${c[k]}" onchange="cfg('${k}',this.value)"> ${u}</span></div>`;
- return `${acc()}<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
+ return `<h2>Paie</h2><div class="card">${n('rate','Taux horaire brut','€ / h')}${n('bonus','Prime de découchage (par nuit)','€')}${n('nuit','Prime de nuit (chantier de nuit)','€')}</div>
  <h2>Apparence</h2><div class="card"><div class="cap">Couleur de l’application</div><div class="sw">${PAL.map(([nm,x])=>`<button class="${c.acc==x?'on':''}" style="background:${x}" title="${nm}" onclick="set2('acc','${x}')"></button>`).join('')}</div>
  <div class="seg" style="margin:0 0 12px">${[['auto','Auto'],['light','Clair'],['dark','Sombre']].map(([k,nm])=>`<button class="${c.theme==k?'on':''}" onclick="set2('theme','${k}')">${nm}</button>`).join('')}</div></div>
  <h2>Majorations hebdomadaires</h2><div class="card">${rw('Seuil d’heures sup',c.thr+' h par semaine')}${rw('Majoration de base','+'+c.r1+' %')}${rw('Au-delà du seuil','+'+c.r2+' %')}</div>
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
- <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 10</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ ${acc()}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 11</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
@@ -383,8 +400,9 @@ function acc(){return FBC&&U?`<h2>Compte</h2><div class="card"><div class="r"><s
  <div class="r"><button class="lk rd" onclick="delacc()">Supprimer mon compte et mes données</button></div></div>`:''}
 function verif(){U.sendEmailVerification().then(()=>alert('E-mail de vérification envoyé.')).catch(x=>alert(fe(x)))}
 function pwd(){auth.sendPasswordResetEmail(U.email).then(()=>alert('Un e-mail pour changer ton mot de passe vient d’être envoyé.')).catch(x=>alert(fe(x)))}
-async function logout(){if(!confirm('Se déconnecter ? Tes données restent dans ton compte.'))return;await pushNow();if(UN)UN();await auth.signOut();localStorage.removeItem(K);location.reload()}
-async function delacc(){if(!confirm('Supprimer définitivement ton compte et toutes tes heures ? Cette action est irréversible.'))return;
+function logout(){ask('Se déconnecter ? Tes données restent dans ton compte.',async()=>{await pushNow();if(UN)UN();await auth.signOut();localStorage.removeItem(K);location.reload()},'Se déconnecter')}
+function delacc(){ask('Supprimer définitivement ton compte et toutes tes heures ? Cette action est irréversible.',dodel,'Supprimer')}
+async function dodel(){
  try{await db.doc('users/'+U.uid).delete();await U.delete();localStorage.removeItem(K);location.reload()}
  catch(x){alert(x.code=='auth/requires-recent-login'?'Par sécurité, déconnecte-toi, reconnecte-toi, puis recommence.':fe(x))}}
 render();
