@@ -69,6 +69,7 @@ nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--c);bord
 nav button{flex:1;border:0;background:none;padding:12px 4px;font:600 13px -apple-system,system-ui,sans-serif;color:var(--s)}
 nav .on{color:var(--a)}
 </style>
+<script src="config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -90,17 +91,17 @@ const T=(s,lo,li,e,w=1)=>({w,s,lo,li,e}),D4=()=>T('08:15','12:00','13:00','17:00
 const DEF={bonus:10,nuit:100,rate:0,thr:8,r1:25,r2:50,mealStd:60,mealRed:30,acc:'#e8590c',theme:'auto',
  tpl:[D4(),D4(),D4(),D4(),FR(),FR(0),FR(0)],
  tplE:[T('09:00','12:00','13:45','17:45'),E8(),E8(),E8(),T('08:00','','','12:00'),T('08:00','','','12:00',0),T('08:00','','','12:00',0)]};
-/* ===== À REMPLIR avec les valeurs de ton projet Firebase (voir le guide) ===== */
-const FB={apiKey:'AIzaSyCDu5iCRJ0smB8f43e2e8R7K2om0p7C3kI',authDomain:'suivi-heures-estampille.firebaseapp.com',projectId:'suivi-heures-estampille',appId:'1:975619476031:web:6c63829c711007c66cc68a'};
+/* Configuration Firebase : voir le fichier config.js */
+const FB=window.FBCONFIG||{apiKey:''};
 const FBC=!!FB.apiKey;let U=FBC?undefined:null,auth,db;
 if(FBC&&window.firebase){firebase.initializeApp(FB);auth=firebase.auth();auth.languageCode='fr';db=firebase.firestore()}
 let S,A={},E={};
 try{const o=JSON.parse(localStorage[K]);S={days:o.days||{},set:{...cl(DEF),...o.set},since:o.since,v:o.v,uid:o.uid,ts:o.ts}}catch(e){S={days:{},set:cl(DEF),v:4}}
 const saveLocal=()=>{localStorage[K]=JSON.stringify(S)};
 const save=()=>{S.ts=Date.now();saveLocal();push()};
-const V={tab:'p',date:null,cm:null,h:'m'};
+const V={tab:'p',date:null,cm:null,hm:null,h:'m'};
 const iso=d=>d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-const TD=()=>iso(new Date());V.date=TD();V.cm=V.date.slice(0,7);
+const TD=()=>iso(new Date());V.date=TD();V.cm=V.date.slice(0,7);V.hm=V.cm;
 const P=s=>new Date(s+'T12:00:00'),wdi=d=>(d.getDay()+6)%7;
 const addD=(s,n)=>{const d=P(s);d.setDate(d.getDate()+n);return iso(d)};
 const wd=s=>wdi(P(s)),ws=s=>addD(s,-wd(s));
@@ -134,8 +135,11 @@ function office(t){const s=m(t.s),lo=m(t.lo),li=m(t.li),e=m(t.e);if(s==null)retu
  if(lo!=null){let x=Math.max(0,lo-s);if(li!=null&&e!=null)x+=Math.max(0,e-li);return x}
  return e!=null?Math.max(0,e-s):0}
 function raw(s,d){const t=d.t,r=ref(s),ex=(d.x||[]).reduce((a,q)=>a+span(m(q.s),m(q.e)),0),o={n:0,o:0,tr:0,cp:0,rc:d.rh||0};
- if(d.type=='chantier'){const a=m(t.arr),l=m(t.lea),site=a!=null&&l!=null?Math.max(0,span(a,l)-d.meal):0;
-  o.n=Math.min(site,r);o.o=Math.max(0,site-r)+ex;o.tr=(d.ng?0:span(m(t.dep),a))+(d.nb?0:span(l,m(t.ret)))}
+ if(d.type=='chantier'){const a=m(t.arr),l=m(t.lea),tp=S.set.tpl[wd(s)],rs=tp.w&&tp.s?m(tp.s):1440,re=tp.w&&tp.e?m(tp.e):0;
+  const ov=(x,y)=>{if(x==null||y==null)return[0,0];const z=y>=x?y:y+1440,inn=Math.max(0,Math.min(z,re)-Math.max(x,rs));return[z-x-inn,inn]};
+  const g1=d.ng?[0,0]:ov(m(t.dep),a),g2=d.nb?[0,0]:ov(l,m(t.ret));
+  const site=a!=null&&l!=null?Math.max(0,span(a,l)-d.meal):0,w=site+g1[1]+g2[1];
+  o.n=Math.min(w,r);o.o=Math.max(0,w-r)+ex;o.tr=g1[0]+g2[0]}
  else if(d.type=='ecole')o.n=office(t);
  else if(d.type=='cp')o.cp=d.h??r;
  else{const w=office(t);o.n=Math.min(w,r);o.o=Math.max(0,w-r)+ex}
@@ -203,23 +207,57 @@ function set2(k,v){S.set[k]=v;done()}
 function tc(k,i,f,v){S.set[k][i][f]=v;done()}
 function rst(){if(confirm('Effacer toutes les saisies (les journées atelier par défaut reviendront) ?')){S.days={};done()}}
 function maj(){const r=navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([]);r.then(x=>Promise.all(x.map(y=>y.unregister()))).then(()=>window.caches?caches.keys():[]).then(k=>Promise.all(k.map(y=>caches.delete(y)))).then(()=>location.reload())}
-function csv(){const f=x=>(x/60).toFixed(2).replace('.',','),a=100+S.set.r1,b=100+S.set.r2;
- const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion '+a+'%;Découchage;Nuit'];
- Object.keys(A).sort().forEach(s=>{const e=E[s];L.push([s,TYn[A[s].type],f(e.n),f(e.cp),f(e.rec),f(e.o1),f(e.o2),f(e.c1),e.night?1:0,e.nw?1:0].join(';'))});
- const u=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'})),k=document.createElement('a');k.href=u;k.download='heures.csv';k.click()}
+function csv(){const mo=V.hm,f=x=>(x/60).toFixed(2).replace('.',','),a=100+S.set.r1,b=100+S.set.r2;
+ const L=['Date;Type;Heures normales;Congés;Récup;Sup '+a+'%;Sup '+b+'%;Camion;Découchage;Nuit'];
+ Object.keys(A).filter(s=>s.startsWith(mo)).sort().forEach(s=>{const e=E[s];L.push([s,TYn[A[s].type],f(e.n),f(e.cp),f(e.rec),f(e.o1),f(e.o2),f(e.c1),e.night?1:0,e.nw?1:0].join(';'))});
+ const u=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'})),k=document.createElement('a');k.href=u;k.download='heures-'+mo+'.csv';k.click()}
 function pdf(){const J=window.jspdf&&window.jspdf.jsPDF;if(!J){alert('Le module PDF n’est pas chargé : ouvre l’app avec du réseau, puis réessaie.');return}
- const mo=V.cm,ks=Object.keys(A).filter(s=>s.startsWith(mo)).sort(),t=tot(ks),c=S.set,q=net(t),doc=new J(),X=v=>v.toFixed(2).replace('.',',')+' EUR',a=100+c.r1,b=100+c.r2;
- let y=18;const pg=()=>{if(y>textMax){doc.addPage();y=18}},textMax=280;
- const row=(r,cols)=>{pg();r.forEach((v,i)=>doc.text(String(v),cols[i],y));y+=6};
- doc.setFontSize(16);doc.text('Suivi des heures - '+fm(mo),14,y);y+=10;doc.setFontSize(10);
- const C=[14,58,92,118,144,168];doc.setFont('helvetica','bold');row(['Date','Type','Normales','Sup','Camion','Primes'],C);doc.setFont('helvetica','normal');
- ks.forEach(s=>{const e=E[s],d=A[s];row([fds(s),TYn[d.type]+(d.rh?' + recup':''),hm(e.n+e.cp),hm(e.o1+e.o2),hm(e.c1),(e.night?'Decouch. ':'')+(e.nw?'Nuit':'')],C)});
- y+=6;doc.setFont('helvetica','bold');row(['Recapitulatif'],[14]);doc.setFont('helvetica','normal');
- const R=[['Heures sup a '+a+' %',hm(t.o1)],['Heures sup a '+b+' %',hm(t.o2)]];
- if(t.rec)R.push(['Recuperations prises',hm(t.rec)],['Sup restantes a '+a+' %',hm(q.o1)],['Sup restantes a '+b+' %',hm(q.o2)]);
- R.push(['Heures de camion a '+a+' %',hm(t.c1)],['Prime de decouchage',X(t.nt*c.bonus)],['Prime de nuit',X(t.nn*c.nuit)]);
- if(c.rate>0){const e2=((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate,e1=(t.n+t.cp+t.rec)/60*c.rate;R.push(['Heures normales (estim.)',X(e1)],['Sup et camion (estim.)',X(e2)],['Total estime (brut)',X(e1+e2+t.nt*c.bonus+t.nn*c.nuit)])}
- R.forEach(r=>row(r,[14,100]));
+ const mo=V.hm,ks=Object.keys(A).filter(s=>s.startsWith(mo)).sort();if(!ks.length){alert('Aucune journée à exporter pour ce mois.');return}
+ const c=S.set,t=tot(ks),q=net(t),a=100+c.r1,b=100+c.r2,doc=new J({unit:'mm',format:'a4'}),W=210,M=12;
+ const X=v=>v.toFixed(2).replace('.',',')+' EUR',z=x=>x>0?hm(x):'-',hx=c.acc||'#e8590c',rg=[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16)),tint=rg.map(v=>Math.round(v+(255-v)*.86));
+ const pr=t.nt*c.bonus+t.nn*c.nuit,e1=(t.n+t.cp+t.rec)/60*c.rate,e2=((q.o1+t.c1)*(1+c.r1/100)+q.o2*(1+c.r2/100))/60*c.rate,tt=e1+e2+pr;
+ let y=0;const nd=n=>{if(y+n>284){doc.addPage();y=16;return true}return false},tx=(s,x,o)=>doc.text(String(s),x,y,o),R={align:'right'};
+ const h2=s=>{nd(14);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...rg);tx(s,M);doc.setDrawColor(...rg);doc.setLineWidth(.4);doc.line(M,y+1.8,W-M,y+1.8);doc.setTextColor(30);doc.setFont('helvetica','normal');y+=9};
+ /* bandeau */
+ doc.setFillColor(...rg);doc.rect(0,0,W,26,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('Suivi des heures',M,12);
+ doc.setFont('helvetica','normal');doc.setFontSize(12);doc.text(fm(mo),M,20);doc.setFontSize(9);doc.text((U&&U.email)||'',W-M,12,R);doc.text('Édité le '+new Date().toLocaleDateString('fr-FR'),W-M,20,R);
+ doc.setTextColor(30);y=36;
+ /* récapitulatif en cartes */
+ h2('Récapitulatif du mois');
+ const K=[['Heures sup à '+a+' %',z(t.o1)],['Heures sup à '+b+' %',z(t.o2)],['Heures de camion à '+a+' %',z(t.c1)]];
+ if(t.rec)K.push(['Récupérations prises',z(t.rec)],['Sup restantes après récup',z(q.o1+q.o2)]);
+ if(t.cp)K.push(['Congés payés',z(t.cp)]);
+ K.push(['Prime de découchage',X(t.nt*c.bonus)],['Prime de nuit',X(t.nn*c.nuit)]);
+ if(c.rate>0)K.push(['Total estimé (brut)',X(tt)]);
+ const bw=(W-2*M-8)/3;
+ K.forEach((k,i)=>{const x=M+(i%3)*(bw+4),yy=y+Math.floor(i/3)*20;doc.setFillColor(245,244,242);doc.roundedRect(x,yy,bw,16,2,2,'F');
+  doc.setFontSize(8);doc.setTextColor(110);doc.text(k[0],x+3,yy+5.5);doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(30);doc.text(k[1],x+3,yy+12.5);doc.setFont('helvetica','normal')});
+ y+=Math.ceil(K.length/3)*20+6;
+ /* détail par jour */
+ h2('Détail par jour');y+=2;
+ const C={d:M+2,ty:M+32,n:98,s:120,c:144,r:170,p:W-M-2};
+ const head=()=>{doc.setFillColor(55,55,60);doc.rect(M,y-4.5,W-2*M,7,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+  tx('Date',C.d);tx('Type',C.ty);tx('Normales',C.n,R);tx('Sup',C.s,R);tx('Camion',C.c,R);tx('Récup / congé',C.r,R);tx('Primes',C.p,R);
+  doc.setFont('helvetica','normal');doc.setTextColor(30);y+=6.5};
+ head();let zb=0;
+ ks.forEach((s,i)=>{const e=E[s],d=A[s],last=i==ks.length-1||ws(ks[i+1])!=ws(s);
+  if(nd(7))head();
+  if(zb++%2==0){doc.setFillColor(248,247,246);doc.rect(M,y-4.5,W-2*M,6,'F')}
+  doc.setFontSize(9);doc.setTextColor(30);tx(fds(s).replace(/\./g,''),C.d);
+  if(d.type=='chantier')doc.setFont('helvetica','bold');tx(TYn[d.type]+(d.rh?' + récup':''),C.ty);doc.setFont('helvetica','normal');
+  tx(z(e.n),C.n,R);tx(z(e.o1+e.o2),C.s,R);tx(z(e.c1),C.c,R);tx(z(e.cp+e.rec),C.r,R);tx(e.night?'Découchage':e.nw?'Nuit':'',C.p,R);y+=6;
+  if(last){const w=tot(ks.filter(x=>ws(x)==ws(s)));if(nd(8))head();
+   doc.setFillColor(...tint);doc.rect(M,y-4.5,W-2*M,6.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+   tx('Semaine '+wkn(ws(s))+(w.o2?'  -  dont '+hm(w.o2)+' à '+b+' %':''),C.d);tx(z(w.n),C.n,R);tx(z(w.o1+w.o2),C.s,R);tx(z(w.c1),C.c,R);tx(z(w.cp+w.rec),C.r,R);
+   doc.setFont('helvetica','normal');y+=7.5}});
+ if(nd(12))head();y+=1;doc.setDrawColor(...rg);doc.setLineWidth(.5);doc.line(M,y-4.5,W-M,y-4.5);doc.setFont('helvetica','bold');doc.setFontSize(9.5);
+ tx('Total du mois',C.d);tx(z(t.n),C.n,R);tx(z(t.o1+t.o2),C.s,R);tx(z(t.c1),C.c,R);tx(z(t.cp+t.rec),C.r,R);tx(pr?X(pr):'-',C.p,R);y+=12;
+ /* estimation */
+ if(c.rate>0){nd(50);h2('Estimation de paie');doc.setFontSize(10);
+  const L=[['Heures normales payées ('+hm(t.n+t.cp+t.rec)+' à '+c.rate.toFixed(2).replace('.',',')+' EUR/h)',X(e1)],['Heures sup et camion majorées',X(e2)],['Primes (découchage et nuit)',X(pr)],['Total estimé (brut)',X(tt)]];
+  L.forEach((l,i)=>{doc.setFont('helvetica',i==3?'bold':'normal');tx(l[0],M+2);tx(l[1],W-M-2,R);y+=6.5});
+  y+=2;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(120);tx("Estimation indicative, hors cotisations et hors éléments de paie non saisis dans l'application.",M+2)}
+ const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(140);doc.text('Suivi Heures - '+fm(mo)+' - page '+i+'/'+n,W/2,291,{align:'center'})}
  const f=new File([doc.output('blob')],'heures-'+mo+'.pdf',{type:'application/pdf'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f]}).catch(()=>{});else doc.save(f.name)}
 
@@ -256,14 +294,16 @@ function pv(){const d=A[V.date];
  const mo=V.cm;
  return h+`<h2>Récapitulatif · ${fm(mo)}</h2>${sumC(tot(Object.keys(A).filter(s=>s.startsWith(mo))))}`}
 
-function hv(){const ks=Object.keys(A);
- let h=`<div class="seg">${[['m','Mois'],['s','Semaines'],['j','Jours']].map(([k,n])=>`<button class="${V.h==k?'on':''}" onclick="V.h='${k}';render()">${n}</button>`).join('')}</div>`;
- if(!ks.length)return h+'<p class="mu">Aucune journée enregistrée.</p>';
- if(V.h=='m'){for(const mo of [...new Set(ks.map(s=>s.slice(0,7)))].sort().reverse())
-   h+=`<h2>${fm(mo)}</h2>${sumC(tot(ks.filter(s=>s.startsWith(mo))))}`;return h}
- for(const w of [...new Set(ks.map(ws))].sort().reverse()){const l=ks.filter(s=>ws(s)==w).sort().reverse();
+function hmv(k){const d=P(V.hm+'-01');d.setMonth(d.getMonth()+k);V.hm=iso(d).slice(0,7);render()}
+function hv(){const mo=V.hm,ks=Object.keys(A).filter(s=>s.startsWith(mo)).sort();
+ let h=`<div class="card"><div class="ch"><button onclick="hmv(-1)">‹</button><b>${fm(mo)}</b><button onclick="hmv(1)">›</button></div></div>
+ <div class="card"><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><button class="lk" onclick="csv()">Exporter en CSV</button></div></div>
+ <div class="seg">${[['m','Récapitulatif'],['s','Semaines'],['j','Jours']].map(([k,n])=>`<button class="${V.h==k?'on':''}" onclick="V.h='${k}';render()">${n}</button>`).join('')}</div>`;
+ if(!ks.length)return h+'<p class="mu">Aucune journée enregistrée ce mois-ci.</p>';
+ if(V.h=='m')return h+sumC(tot(ks));
+ for(const w of [...new Set(ks.map(ws))].sort().reverse()){const l=ks.filter(s=>ws(s)==w).reverse(),full=w.startsWith(mo)&&addD(w,6).startsWith(mo);
   h+=`<h2>${wt(w)}</h2>`;
-  h+=V.h=='s'?sumC(tot(l),baseMin()):'<div class="card">'+l.map(s=>{const e=E[s],d=A[s],o=e.o1+e.o2,c=e.c1;
+  h+=V.h=='s'?sumC(tot(l),full?baseMin():0):'<div class="card">'+l.map(s=>{const e=E[s],d=A[s],o=e.o1+e.o2,c=e.c1;
    return `<div class="r tap" onclick="go('${s}')"><span>${fds(s)}<br><small>${TYn[d.type]}${d.rh?' + récup':''}</small></span><span style="text-align:right">${hm(e.n+e.cp)}${e.night?' 🛏':''}${e.nw?' 🌙':''}<br><small>${o?'sup '+hm(o):''}${o&&c?' · ':''}${c?'camion '+hm(c):''}</small></span></div>`}).join('')+'</div>'}
  return h}
 
@@ -279,14 +319,14 @@ function sv(){const c=S.set,n=(k,l,u)=>`<div class="r"><span>${l}</span><span><i
  <h2>Remplissage automatique</h2><div class="card"><div class="r"><span>Journées atelier dès le</span><input type="date" value="${S.since}" onchange="S.since=this.value||S.since;done()"></div></div>
  ${tpb('tpl','Horaires atelier')}${tpb('tplE','Horaires école')}
  <p class="mu" style="margin:4px 6px">Dans l’ordre : arrivée, début de pause, fin de pause, départ.</p>
- <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 9</small></div><div class="r"><button class="lk" onclick="csv()">Exporter en CSV</button></div><div class="r"><button class="lk" onclick="pdf()">Exporter en PDF</button><small>${fm(V.cm)}</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
+ <h2>Données</h2><div class="card"><div class="r"><button class="lk" onclick="maj()">Forcer la mise à jour</button><small>Version 10</small></div><div class="r"><button class="lk rd" onclick="rst()">Tout effacer</button></div></div>`}
 
 function ap(){const r=document.documentElement,c=S.set.acc||'#e8590c',n=parseInt(c.slice(1),16);
  r.style.setProperty('--a',c);r.style.setProperty('--at','rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+',.18)');
  if(S.set.theme&&S.set.theme!='auto')r.dataset.theme=S.set.theme;else delete r.dataset.theme;
  const mt=$('meta[name=theme-color]');if(mt)mt.content=c}
-function render(){ap();const gate=FBC&&!U;$('nav').style.display=gate?'none':'flex';
- if(gate){$('#app').innerHTML=!auth?'<p class="mu" style="padding:40px 10px;text-align:center">Impossible de charger le service de connexion. Vérifie ta connexion internet puis recharge la page.</p>':U===undefined?'<p class="mu" style="padding:60px 10px;text-align:center">Chargement…</p>':av();return}
+function render(){ap();const miss=!FBC&&!!S.uid,gate=(FBC&&!U)||miss;$('nav').style.display=gate?'none':'flex';
+ if(gate){$('#app').innerHTML=miss?'<p class="mu" style="padding:40px 10px;text-align:center">Le fichier config.js est introuvable sur le site. Ajoute-le sur GitHub (voir le guide), puis recharge la page.</p>':!auth?'<p class="mu" style="padding:40px 10px;text-align:center">Impossible de charger le service de connexion. Vérifie ta connexion internet puis recharge la page.</p>':U===undefined?'<p class="mu" style="padding:60px 10px;text-align:center">Chargement…</p>':av();return}
  A=all();E=evalAll();$('#app').innerHTML=V.tab=='p'?pv():V.tab=='h'?hv():sv();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==V.tab))}
 /* migration */
